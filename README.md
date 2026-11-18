@@ -230,7 +230,9 @@ Docs: `uv run mkdocs serve` (sources in `docs/`).
 ## Team
 
 Developed by the **AI Engineering** team at the [Vector Institute](https://vectorinstitute.ai). MARScope is
-licensed under the Apache License 2.0. See [LICENSE.md](./LICENSE.md) in the repository.
+licensed under the Apache License 2.0. See [LICENSE.md](./LICENSE.md) in the repository. The example frame on
+the landing page is from [GenVideo](https://modelscope.cn/datasets/cccnju/Gen-Video) ([DeMamba](https://github.com/chenhaoxing/DeMamba)),
+used under CC BY-NC 4.0, with highlights added by MARScope.
 
 For research collaborations, partnerships, or technical inquiries, please contact **Shaina Raza, PhD** at
 shaina.raza@vectorinstitute.ai.
