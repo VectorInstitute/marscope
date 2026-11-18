@@ -27,8 +27,9 @@ uv run mkdocs build --strict                    # docs, when docs change
 
 **Unit tests** need no models, no GPU and no network. They run in GitHub CI on every PR.
 
-**Integration tests** (`-m integration_test`) load the real ONNX models and check golden values.
-They need a GPU and the reference clips, so they run on the cluster, not in GitHub CI. Run them
+**Integration tests** (`-m integration_test`) load the real ONNX models and check that the pipeline
+reproduces the research code's outputs on fixed clips. They need a GPU and local copies of those
+clips (research-only datasets, never committed), so they run on the cluster, not in GitHub CI. Run them
 before merging any change to preprocessing, the model runners, score aggregation or the usual ranges,
 and paste the output in the PR.
 
