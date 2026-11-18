@@ -59,7 +59,7 @@ repos:
     - id: doctest
       name: doctest
       entry: python3 -m doctest -o NORMALIZE_WHITESPACE
-      files: "^src/marscope/"
+      files: '^src/marscope/.*\.py$'
       language: system
 
   - repo: local
