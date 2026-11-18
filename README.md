@@ -15,9 +15,6 @@ your own machine. It shows the evidence behind each score, lets you test what ea
 and explains the result with fixed, cited notes. It is a study tool: it never says a video is real
 or fake.
 
-> **Status: early development.** Nothing is released yet.
-
-**Docs:** [vectorinstitute.github.io/marscope](https://vectorinstitute.github.io/marscope/) (quick start, how it works, CLI, web UI and serving, REST and Python API, FAQ).
 
 ## Overview
 
