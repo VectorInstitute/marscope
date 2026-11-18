@@ -7,7 +7,7 @@ resolution-markers = [
 ]
 
 [[package]]
-name = "aieng-template-uv"
+name = "marscope"
 version = "0.1.1"
 source = { editable = "." }
 default-groups = ["dev", "docs"]

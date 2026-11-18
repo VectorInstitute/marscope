@@ -1,11 +1,11 @@
 [project]
-name = "aieng-template-uv"
+name = "marscope"
 version = "0.1.1"
-description = "Add your description here"
+description = "See what a video deepfake detector sees: scores, evidence and explanations, never a verdict"
 readme = "README.md"
 authors = [ {name = "Vector AI Engineering", email = "ai_engineering@vectorinstitute.ai"}]
 license = "Apache-2.0"
-repository = "https://github.com/VectorInstitute/aieng-template-uv"
+repository = "https://github.com/VectorInstitute/marscope"
 requires-python = ">=3.12"
 dependencies = [
     "filelock==4.2.10",
@@ -144,5 +144,5 @@ markers = [
 
 [tool.coverage]
     [tool.coverage.run]
-    source=["src/aieng_template_uv"]
+    source=["src/marscope"]
     omit=["tests/*", "*__init__.py"]

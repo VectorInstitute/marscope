@@ -1,74 +1,37 @@
-# AI Engineering template (with uv)
+# MARScope
 
 ----------------------------------------------------------------------------------------
 
-[![code checks](https://github.com/VectorInstitute/aieng-template-uv/actions/workflows/code_checks.yml/badge.svg)](https://github.com/VectorInstitute/aieng-template-uv/actions/workflows/code_checks.yml)
-[![unit tests](https://github.com/VectorInstitute/aieng-template-uv/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/VectorInstitute/aieng-template-uv/actions/workflows/unit_tests.yml)
-[![integration tests](https://github.com/VectorInstitute/aieng-template-uv/actions/workflows/integration_tests.yml/badge.svg)](https://github.com/VectorInstitute/aieng-template-uv/actions/workflows/integration_tests.yml)
-[![docs](https://github.com/VectorInstitute/aieng-template-uv/actions/workflows/docs.yml/badge.svg)](https://github.com/VectorInstitute/aieng-template-uv/actions/workflows/docs.yml)
-[![codecov](https://codecov.io/github/VectorInstitute/aieng-template-uv/graph/badge.svg?token=83MYFZ3UPA)](https://codecov.io/github/VectorInstitute/aieng-template-uv)
-![GitHub License](https://img.shields.io/github/license/VectorInstitute/aieng-template-uv)
+[![code checks](https://github.com/VectorInstitute/marscope/actions/workflows/code_checks.yml/badge.svg)](https://github.com/VectorInstitute/marscope/actions/workflows/code_checks.yml)
+[![unit tests](https://github.com/VectorInstitute/marscope/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/VectorInstitute/marscope/actions/workflows/unit_tests.yml)
+[![docs](https://github.com/VectorInstitute/marscope/actions/workflows/docs.yml/badge.svg)](https://github.com/VectorInstitute/marscope/actions/workflows/docs.yml)
+[![codecov](https://codecov.io/github/VectorInstitute/marscope/graph/badge.svg?token=83MYFZ3UPA)](https://codecov.io/github/VectorInstitute/marscope)
+![GitHub License](https://img.shields.io/github/license/VectorInstitute/marscope)
 
-A template repo for AI Engineering projects (using ``python``) and ``uv``. This
-template is like our original AI Engineering [template](https://github.com/VectorInstitute/aieng-template),
-however, unlike how that template uses poetry, this one uses uv for dependency
-management (as well as packaging and publishing).
+See what a video deepfake detector sees. MARScope runs trained detectors on a video, shows the
+evidence behind each score, and explains why one score is not proof. Educational use only.
 
-## 🧑🏿‍💻 Developing
+> **Status: early development.** Nothing is released yet.
 
-### Installing dependencies
+## Developing
 
-The development environment can be set up using
-[uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation). Hence, make sure it is
-installed and then run:
+Set up the environment with [uv](https://docs.astral.sh/uv/getting-started/installation/):
 
 ```bash
-uv sync
+uv sync                    # runtime, dev and docs groups
 source .venv/bin/activate
+pre-commit install
 ```
 
-In order to install dependencies for testing (codestyle, unit tests, integration tests),
-run:
+Checks run before every PR (see [CONTRIBUTING.md](CONTRIBUTING.md)):
 
 ```bash
-uv sync --dev
-source .venv/bin/activate
+uv run pre-commit run --all-files            # ruff, mypy, typos, doctest, unit tests
+uv run pytest -m "not integration_test" tests
 ```
 
-In order to exclude installation of packages from a specific group (e.g. docs),
-run:
+Docs: `uv run mkdocs serve`.
 
-```bash
-uv sync --no-group docs
-```
+## License
 
-If you're coming from `poetry` then you'll notice that the virtual environment
-is actually stored in the project root folder and is by default named as `.venv`.
-The other important note is that while `poetry` uses a "flat" layout of the project,
-`uv` opts for the the "src" layout. (For more info, see [here](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/))
-
-### Poetry to UV
-
-The table below provides the `uv` equivalent counterparts for some of the more
-common `poetry` commands.
-
-| Poetry                                               | UV                                          |
-|------------------------------------------------------|---------------------------------------------|
-| `poetry new <project-name>`  # creates new project   | `uv init <project-name>`                    |
-| `poetry install`  # installs existing project        | `uv sync`                                   |
-| `poetry install --with docs,test`                    | `uv sync --group docs --group test`         |
-| `poetry add numpy`                                   | `uv add numpy`                              |
-| `poetry add pytest pytest-asyncio --groups dev`      | `uv add pytest pytest-asyncio --groups dev` |
-| `poetry remove numpy`                                | `uv remove numpy`                           |
-| `poetry lock`                                        | `uv lock`                                   |
-| `poetry run <cmd>`  # runs cmd with the project venv | `uv run <cmd>`                              |
-| `poetry build`                                       | `uv build`                                  |
-| `poetry publish`                                     | `uv publish`                                |
-| `poetry cache clear pypi --all`                      | `uv cache clean`                            |
-
-For the full list of `uv` commands, you can visit the official [docs](https://docs.astral.sh/uv/reference/cli/#uv).
-
-### Tidbit
-
-If you're curious about what "uv" stands for, it appears to have been more or
-less chosen [randomly](https://github.com/astral-sh/uv/issues/1349#issuecomment-1986451785).
+[Apache 2.0](LICENSE.md).
