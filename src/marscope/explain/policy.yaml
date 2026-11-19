@@ -355,11 +355,16 @@ reading:
   lean_real: {en: "Detectors lean real", fr: "Les détecteurs penchent vers le vrai"}
   lean_real_one: {en: "{m} leans real", fr: "{m} penche vers le vrai"}
   lean_unclear: {en: "No clear lean", fr: "Pas de tendance nette"}
-  all_unusual: {en: "Every model scores far above real videos.", fr: "Tous les modèles donnent un score bien au-dessus des vraies vidéos."}
-  one_unusual: {en: "{m} scores far above real videos.", fr: "{m} donne un score bien au-dessus des vraies vidéos."}
-  all_typical: {en: "Every model scores like a real video.", fr: "Tous les modèles donnent un score de vraie vidéo."}
-  one_typical: {en: "{m} scores like a real video.", fr: "{m} donne un score de vraie vidéo."}
-  disagree: {en: "The models disagree: on {high} the score is far above real videos, on {low} it is within the usual range.", fr: "Les modèles divergent : avec {high}, le score est bien au-dessus des vraies vidéos ; avec {low}, dans la plage habituelle."}
+  all_unusual: {en: "Every model gives a probability of fake well above the usual range for real videos.", fr: "Tous les modèles donnent une probabilité de faux bien au-dessus de la plage habituelle des vraies vidéos."}
+  one_unusual: {en: "{m} gives a probability of fake well above the usual range for real videos.", fr: "{m} donne une probabilité de faux bien au-dessus de la plage habituelle des vraies vidéos."}
+  all_typical: {en: "Every model gives a probability of fake within the usual range for real videos.", fr: "Tous les modèles donnent une probabilité de faux dans la plage habituelle des vraies vidéos."}
+  one_typical: {en: "{m} gives a probability of fake within the usual range for real videos.", fr: "{m} donne une probabilité de faux dans la plage habituelle des vraies vidéos."}
+  split_fake_one: {en: "{m} leans fake.", fr: "{m} penche vers le faux."}
+  split_fake_many: {en: "{m} lean fake.", fr: "{m} penchent vers le faux."}
+  split_real_one: {en: "{m} leans real.", fr: "{m} penche vers le vrai."}
+  split_real_many: {en: "{m} lean real.", fr: "{m} penchent vers le vrai."}
+  split_none_one: {en: "{m} has no clear lean.", fr: "{m} n’a pas de tendance nette."}
+  split_none_many: {en: "{m} have no clear lean.", fr: "{m} n’ont pas de tendance nette."}
   in_between: {en: "The scores sit between what real and fake videos usually get.", fr: "Les scores se situent entre ce qu’obtiennent d’habitude les vraies et les fausses vidéos."}
   action_check: {en: "Check the source before acting.", fr: "Vérifiez la source avant d’agir."}
   action_real: {en: "If it matters, still check where the video comes from.", fr: "Si l’enjeu est important, vérifiez tout de même d’où vient la vidéo."}

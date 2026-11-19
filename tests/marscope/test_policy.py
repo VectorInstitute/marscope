@@ -209,7 +209,7 @@ def _reading(make_result: Make, scores: dict[str, tuple[float, bool]], **kwargs:
 def test_reading_leans_fake_when_every_model_scores_high(make_result: Make) -> None:
     r = _reading(make_result, {"mars": (0.9, True), "gend": (0.9, True)})
     assert (r.lean, r.headline) == ("fake", "Detectors lean fake")
-    assert r.reasons == ["Every model scores far above real videos."]
+    assert r.reasons == ["Every model gives a probability of fake well above the usual range for real videos."]
     assert r.action == "Check the source before acting."
 
 
@@ -227,7 +227,9 @@ def test_reading_leans_real_when_every_model_scores_low(make_result: Make) -> No
 def test_reading_is_unclear_when_models_disagree(make_result: Make) -> None:
     r = _reading(make_result, {"mars": (0.9, True), "gend": (0.3, False)})
     assert (r.lean, r.headline) == ("unclear", "No clear lean")
-    assert r.reasons[0].startswith("The models disagree: on MARS the score is far above real videos")
+    assert r.reasons == ["MARS leans fake. GenD leans real."]
+    r = _reading(make_result, {"mars": (0.9, True), "gend": (0.3, False), "dfd-hr": (0.9, True)})
+    assert r.reasons == ["MARS and DFD-HR lean fake. GenD leans real."]
 
 
 def test_reading_in_french(make_result: Make) -> None:

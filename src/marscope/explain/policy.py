@@ -372,9 +372,17 @@ def assess(result: VideoResult, language: str = "en") -> Reading:
         lean, reason = "real", t("one_typical", m=names[0]) if one else t("all_typical")
     elif high_ids:
         lean = "unclear"
-        high = [result.models[m].name for m in high_ids]
-        low = [result.models[m].name for m in ids if m not in high_ids]
-        reason = t("disagree", high=_join(high, join), low=_join(low, join))
+        rest = [m for m in ids if m not in high_ids]
+        groups = [
+            ("fake", [result.models[m].name for m in high_ids]),
+            ("real", [result.models[m].name for m in rest if result.models[m].context.real_rank < REAL_LEAN_RANK]),
+            ("none", [result.models[m].name for m in rest if result.models[m].context.real_rank >= REAL_LEAN_RANK]),
+        ]
+        reason = " ".join(
+            t(f"split_{kind}_{'one' if len(names) == 1 else 'many'}", m=_join(names, join))
+            for kind, names in groups
+            if names
+        )
     else:
         lean, reason = "unclear", t("in_between")
     headline = t(f"lean_{lean}_one", m=names[0]) if one and lean != "unclear" else t(f"lean_{lean}")

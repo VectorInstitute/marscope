@@ -28,7 +28,7 @@
       posLine: "Higher than {r}% of real test videos and {f}% of fake ones",
       agreeAll: "Every model gives a probability of fake that is very unusual for a real video.",
       agreeNone: "No model gives a probability of fake that is unusual for a real video.",
-      disagreeList: "The models disagree: the score is very unusual for a real video on {high} and within the usual range on {low}.",
+
       whyWeak: "The scores sit in between, with no clear lean: check where the video comes from.",
       stepQueued: "Waiting for the GPU", stepLoading: "Loading {m}", stepRunClip: "Running {m} · clip {i} of about {n}",
       stepTesting: "Testing what {m} relies on", stepNotes: "Writing the notes", failed: "The analysis stopped: {e}",
@@ -110,7 +110,7 @@
       posLine: "Plus haut que {r} % des vraies vidéos de test et {f} % des fausses",
       agreeAll: "Chaque modèle donne une probabilité de faux très inhabituelle pour une vraie vidéo.",
       agreeNone: "Aucun modèle ne donne une probabilité de faux inhabituelle pour une vraie vidéo.",
-      disagreeList: "Les modèles divergent : le score est très inhabituel pour une vraie vidéo avec {high} et dans la plage habituelle avec {low}.",
+
       whyWeak: "Les scores sont entre les deux, sans tendance nette : vérifiez d’où vient la vidéo.",
       stepQueued: "En attente du GPU", stepLoading: "Chargement de {m}", stepRunClip: "{m} · extrait {i} sur environ {n}",
       stepTesting: "Tests de ce sur quoi {m} s’appuie", stepNotes: "Rédaction des notes", failed: "L’analyse s’est arrêtée : {e}",

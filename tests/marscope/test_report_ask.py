@@ -172,7 +172,7 @@ def test_verdict_questions_never_reach_the_llm(result: VideoResult, monkeypatch:
     monkeypatch.setattr(ask_module, "complete", boom)
     answer = ask_module.ask(result, "So is this video fake or not?")
     assert answer.refused and answer.source == "fixed"
-    assert answer.text.startswith("No clear lean: The models disagree") and "The final decision is yours" in answer.text
+    assert answer.text.startswith("No clear lean: MARS leans fake.") and "The final decision is yours" in answer.text
     assert asks_for_verdict("Est-ce que c'est un hypertrucage ?")
     assert not asks_for_verdict("What does A4 breaks mean?")
 
