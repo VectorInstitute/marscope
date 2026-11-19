@@ -6,6 +6,7 @@ import math
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -47,6 +48,31 @@ log = logging.getLogger(__name__)
 
 Progress = Callable[[dict[str, Any]], None]
 THUMB_HEIGHT = 360
+
+
+def upright(img: Image.Image, rotation: int) -> Image.Image:
+    """Rotate a thumbnail upright (the models still see the frame as decoded).
+
+    Parameters
+    ----------
+    img : PIL.Image.Image
+        A decoded frame.
+    rotation : int
+        Degrees counter-clockwise, from the file's display rotation.
+
+    Returns
+    -------
+    PIL.Image.Image
+        The rotated image (the same image when the rotation is 0).
+
+    Examples
+    --------
+    >>> upright(Image.new("RGB", (4, 2)), 90).size
+    (2, 4)
+    """
+    return img.rotate(rotation, expand=True) if rotation % 360 else img
+
+
 TEST_CLIPS = 3  # strongest clips used by the A1 and A5 input tests
 SHOWN_FRAMES = 16  # runs a clip is split into in the UI (one shown frame per run)
 QUALITIES = (100, 70, 50, 30, 10)  # JPEG qualities of the what-if chart
@@ -327,7 +353,7 @@ class MARScope:
             if finder is not None:
                 faces[index] = finder.detect(rgb)
             if thumbs is not None:
-                img = Image.fromarray(rgb)
+                img = upright(Image.fromarray(rgb), meta.rotation)
                 img.thumbnail((THUMB_HEIGHT * 4, THUMB_HEIGHT))
                 img.save(thumbs / f"{index:06d}.jpg", quality=85)
 
@@ -371,6 +397,7 @@ class MARScope:
             n_kept_frames=n_kept,
             n_clips=n_clips,
             frame_stride=runners[model_ids[0]].protocol.frame_stride,
+            rotation=meta.rotation,
         )
         n_per_clip = runners[model_ids[0]].protocol.n_frames
         prechecks = Prechecks(
@@ -569,7 +596,15 @@ class MARScope:
         p = self.load(model_id).protocol
         return read_clip(path, clip_index, p.image_size, p.n_frames, p.frame_stride)
 
-    def probe(self, path: str | Path, result: VideoResult, model_id: str, clip_index: int, kind: str) -> dict[str, Any]:
+    def probe(  # noqa: PLR0913, PLR0917
+        self,
+        path: str | Path,
+        result: VideoResult,
+        model_id: str,
+        clip_index: int,
+        kind: str,
+        occlusion: list[list[float]] | None = None,
+    ) -> dict[str, Any]:
         """Run a faithfulness probe on one clip.
 
         Parameters
@@ -582,8 +617,11 @@ class MARScope:
             Model to probe.
         clip_index : int
             Clip number.
-        kind : {"frames", "patches"}
-            Remove the top frames, or blank the top patches (MARS only).
+        kind : {"frames", "patches", "areas"}
+            Remove the top frames, blank the top patches (MARS only), or blank the top
+            cells of the occlusion map (any model).
+        occlusion : list of list of float, optional
+            The clip's occlusion map for ``areas`` (computed when not given).
 
         Returns
         -------
@@ -601,7 +639,10 @@ class MARScope:
             if not maps:
                 raise ValueError("patch probes need MARS evidence")
             return ev.probe_patches(score, frames, clip.n_valid, maps[clip_index], seed=clip_index).as_dict()
-        raise ValueError("kind must be frames or patches")
+        if kind == "areas":
+            occ = np.asarray(occlusion if occlusion is not None else self.occlusion(path, model_id, clip_index))
+            return ev.probe_occlusion(score, frames, clip.n_valid, occ, seed=clip_index).as_dict()
+        raise ValueError("kind must be frames, patches or areas")
 
     def rescore(self, path: str | Path, result: VideoResult, clip_index: int, drop: list[int]) -> dict[str, float]:
         """Score one clip again with some of its shown frames removed, for every model.
@@ -718,7 +759,15 @@ class MARScope:
                 out[m].append(v)
         return out
 
-    def occlusion(self, path: str | Path, model_id: str, clip_index: int, grid: int = 8) -> list[list[float]]:
+    def occlusion(  # noqa: PLR0913
+        self,
+        path: str | Path,
+        model_id: str,
+        clip_index: int,
+        grid: int = 8,
+        *,
+        guard: AbstractContextManager[Any] | None = None,
+    ) -> list[list[float]]:
         """Occlusion map for one clip (any model).
 
         Parameters
@@ -731,6 +780,9 @@ class MARScope:
             Clip number.
         grid : int
             Cells per side.
+        guard : context manager, optional
+            Held around each pass only (the server's GPU lock), so other requests can
+            run between passes. Batching passes was measured and gives no speedup.
 
         Returns
         -------
@@ -739,5 +791,5 @@ class MARScope:
         """
         clip = self._clip(path, model_id, clip_index)
         frames = clip.inputs[self.load(model_id).protocol.image_size]
-        result = ev.occlusion_map(self._scorer(model_id), frames, clip.n_valid, grid)
+        result = ev.occlusion_map(self._scorer(model_id), frames, clip.n_valid, grid, guard=guard)
         return [[round(float(v), 4) for v in row] for row in result]

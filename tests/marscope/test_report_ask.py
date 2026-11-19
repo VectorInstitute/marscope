@@ -207,10 +207,10 @@ def test_number_words_and_wrong_premises(result: VideoResult) -> None:
 
 
 def test_llm_answers_are_capped(result: VideoResult, monkeypatch: pytest.MonkeyPatch) -> None:
-    long = "The models agree. Your test moved the score. One score is not proof. This is extra. And more."
+    long = "The models agree. The scores sit high. One score is not proof. This is extra. And more."
     monkeypatch.setattr(report_module, "llm_settings", lambda: SETTINGS)
     monkeypatch.setattr(report_module, "complete", fake_llm(long))
-    assert build_report(result).summary == "The models agree. Your test moved the score. One score is not proof."
+    assert build_report(result).summary == "The models agree. The scores sit high. One score is not proof."
     monkeypatch.setattr(ask_module, "llm_settings", lambda: SETTINGS)
     monkeypatch.setattr(ask_module, "complete", fake_llm(long))
     assert ask_module.ask(result, "Why?").text.count(".") == 3
@@ -247,3 +247,14 @@ def test_summary_that_loses_its_first_sentence_falls_back(result: VideoResult, m
     assert built.summary_source == "template" and built.llm_status == "filtered"
     monkeypatch.setattr(report_module, "complete", fake_llm("No tests were run."))
     assert build_report(result).summary_source == "template"  # one sentence is not a summary
+
+
+def test_summary_drops_test_mentions_when_none_were_run(result: VideoResult, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(report_module, "llm_settings", lambda: SETTINGS)
+    prose = "MARS gives a probability of fake that is very unusual for a real video. No user tests were run to verify this finding. A single score is not proof."
+    monkeypatch.setattr(report_module, "complete", fake_llm(prose))
+    built = build_report(result)
+    assert built.summary_source == "llm" and "tests" not in built.summary
+    assert built.summary.endswith("A single score is not proof.")
+    with_tests = build_report(result, experiments=session_tests())
+    assert "No user tests" in with_tests.summary  # only dropped when no tests ran

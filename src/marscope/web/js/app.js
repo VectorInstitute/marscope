@@ -65,7 +65,10 @@
       areasHidden: "{m} · grey squares are hidden in this frame ({n})",
       mitTotal: "{t} risks are listed in the repository ({v}).", mitDeep: "{n} of them mention deepfakes or synthetic media.",
       mitTop: "Most common among those:", mitUses: "Below are the risk types this tool’s notes link to.",
-      testFailed: "The test could not run: {e}", rpRank: "Compared with real videos", rpRanges: "Real videos usually", scoresH: "Scores in context", rpTried: "What you tried",
+      runAreasOcc: "Hide its top 8 areas", rotatedNote: "shown upright (rotated {d}°)", startOver: "Start over",
+      serverDown: "Can’t reach the MARScope server. Check that it is still running, then try again.",
+      reconnecting: "Connection lost, reconnecting…",
+      serverLost: "Lost the connection to the MARScope server. If it stopped, start it again, then analyze the video again.", testFailed: "The test could not run: {e}", rpRank: "Compared with real videos", rpRanges: "Real videos usually", scoresH: "Scores in context", rpTried: "What you tried",
       rpWriting: "Writing the summary with {m}…", rpFailed: "The report could not be built: {e}", rpDlFailed: "Failed",
       download: "Download", exportSession: "Session (JSON)", cardFrame: "Include the current frame (card, PDF, HTML)", frameCap: "Frame {n} (clip {c}), as the models saw it, before any edit.",
       sentNote: "The result in words, the notes and your tests. Never the video or its frames.",
@@ -141,7 +144,10 @@
       areasHidden: "{m} · les carrés gris sont cachés dans cette image ({n})",
       mitTotal: "Le répertoire recense {t} risques ({v}).", mitDeep: "{n} d’entre eux mentionnent les hypertrucages ou les médias synthétiques.",
       mitTop: "Les plus fréquents parmi eux :", mitUses: "Ci-dessous, les types de risque auxquels renvoient les notes de cet outil.",
-      testFailed: "L’essai n’a pas pu tourner : {e}", rpRank: "Par rapport aux vraies vidéos", rpRanges: "Vraies vidéos, d’habitude", scoresH: "Les scores en contexte", rpTried: "Ce que vous avez essayé",
+      runAreasOcc: "Cacher ses 8 zones principales", rotatedNote: "affichée droite (tournée de {d}°)", startOver: "Recommencer",
+      serverDown: "Impossible de joindre le serveur MARScope. Vérifiez qu’il tourne toujours, puis réessayez.",
+      reconnecting: "Connexion perdue, reconnexion…",
+      serverLost: "Connexion au serveur MARScope perdue. S’il s’est arrêté, relancez-le, puis analysez de nouveau la vidéo.", testFailed: "L’essai n’a pas pu tourner : {e}", rpRank: "Par rapport aux vraies vidéos", rpRanges: "Vraies vidéos, d’habitude", scoresH: "Les scores en contexte", rpTried: "Ce que vous avez essayé",
       rpWriting: "Rédaction du résumé avec {m}…", rpFailed: "Impossible de produire le rapport : {e}", rpDlFailed: "Échec",
       download: "Télécharger", exportSession: "Session (JSON)", cardFrame: "Inclure l’image en cours (fiche, PDF, HTML)", frameCap: "Image {n} (extrait {c}), telle que les modèles l’ont vue, avant toute modification.",
       sentNote: "Le résultat en mots, les notes et vos essais. Jamais la vidéo ni ses images.",
@@ -198,13 +204,27 @@
     test: "frames", removed: [], rescored: null, rescoring: false, method: {}, agree: false, mapBusy: false,
     edits: { jpeg: 100, scale: 100, blur: 0, noise: 0 }, edited: null, editBusy: false, compare: true, qsweeps: {},
   };
+  /* Every call to the local server. A network failure means the server stopped (or the machine is
+     offline); a 404 on this job means it expired: both get a plain message instead of a broken page. */
   const api = async (path, body) => {
     const opts = body === undefined ? { cache: "no-store" } : body instanceof FormData ? { method: "POST", body } : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
-    const res = await fetch(path, opts);
+    let res;
+    try { res = await fetch(path, opts); } catch (_) { notice(T("serverDown")); throw new Error(T("serverDown")); }
     const data = await res.json().catch(() => ({}));
+    if (res.status === 404 && S.job && path.startsWith(`jobs/${S.job}`)) { notice(T("expired")); throw new Error(T("expired")); }
     if (!res.ok) throw new Error(data.error || res.statusText);
     return data;
   };
+  /* One banner on the result, with a way back to the start. */
+  function notice(text) {
+    if (!S.R || V.analyze.hidden) return;
+    let el = $("#notice");
+    if (!el) {
+      el = document.createElement("div"); el.id = "notice"; el.className = "notice"; el.setAttribute("role", "alert");
+      V.analyze.prepend(el);
+    }
+    el.innerHTML = `<span>${esc(text)}</span><button type="button" class="btn btn-small" data-nav>${esc(T("startOver"))}</button>`;
+  }
 
   /* --------------------------------------------------------- video helpers */
   const stride = () => S.R.video.frame_stride || 2;
@@ -274,6 +294,7 @@
   }
   function leave() {
     stopPlay();
+    const gone = $("#notice"); if (gone) gone.remove();
     if (S.source) S.source.close();
     if (S.job) fetch(`jobs/${S.job}`, { method: "DELETE" }).catch(() => {});
     S.job = null; S.R = null;
@@ -358,7 +379,16 @@
     if (S.source) S.source.close();
     const src = new EventSource(`jobs/${S.job}/events`);
     S.source = src;
+    /* The browser retries a dropped stream on its own; if the server is gone (or the job with it), stop and say so. */
+    let lost = null;
+    const giveUp = () => { src.close(); lost = null; $("#run-step").textContent = T("serverLost"); $("#run-back").hidden = false; };
+    src.onerror = () => {
+      if (src.readyState === EventSource.CLOSED) { giveUp(); return; }
+      $("#run-step").textContent = T("reconnecting");
+      if (!lost) lost = setTimeout(giveUp, 15000);
+    };
     src.onmessage = (msg) => {
+      if (lost) { clearTimeout(lost); lost = null; }
       const ev = JSON.parse(msg.data);
       if (ev.type === "clip") {
         done[ev.model] = ev.done;
@@ -481,7 +511,7 @@
   function renderAll() {
     const s = S.src;
     $("#an-h").textContent = s.name;
-    $("#meta-text").textContent = `${t2s(s.duration)} · ${s.width}×${s.height}`;
+    $("#meta-text").textContent = `${t2s(s.duration)} · ${s.width}×${s.height}` + (S.R.video.rotation ? ` · ${T("rotatedNote", { d: S.R.video.rotation })}` : "");
     $("#cred-open").textContent = s.cred.status === "found" ? T("credFoundShort") : s.cred.status === "absent" ? T("credNoneShort") : T("credUnsupported");
     $("#guess").hidden = !S.guessing; $("#models").hidden = S.guessing; $("#agree").hidden = S.guessing; $("#strength-row").hidden = S.guessing; $("#tabs").hidden = S.guessing; $("#trust-sum").hidden = S.guessing;
     $("#open-report").disabled = S.guessing; $("#open-report").title = S.guessing ? T("guessFirstHint") : "";
@@ -716,9 +746,9 @@
       } else ctx.drawImage(img, rect.x, rect.y, w, h);
       [1, 2, 3].forEach((d) => { if (S.frame + d < N(S.clip)) image(srcFrame(S.clip, S.frame + d)); });
     }
-    const pr = !S.guessing && S.test === "areas" && m.native ? S.probes[`${m.id}:${S.clip}:patches`] : null;
-    const hid = pr && pr.cells ? new Set(pr.cells[positions(S.clip)[S.frame]] || []) : null;
-    const hm = hid ? null : S.overlay && !S.guessing ? heatFor(m) : null, grid = $("#patches");
+    const pr = !S.guessing && S.test === "areas" ? S.probes[`${m.id}:${S.clip}:${m.native ? "patches" : "areas"}`] : null;
+    const hid = pr && pr.cells ? new Set((pr.cells[positions(S.clip)[S.frame]] || []).map((i) => turn(i, 24))) : null;
+    const hm = hid ? null : S.overlay && !S.guessing ? turned(heatFor(m)) : null, grid = $("#patches");
     if (hid) {
       Object.assign(grid.style, { left: (rect.x / cv.width) * 100 + "%", top: (rect.y / cv.height) * 100 + "%", width: (rect.w / cv.width) * 100 + "%", height: (rect.h / cv.height) * 100 + "%", right: "auto", bottom: "auto", gridTemplateColumns: "repeat(24, 1fr)", gridTemplateRows: "repeat(24, 1fr)" });
       grid.innerHTML = Array.from({ length: 576 }, (_, i) => (hid.has(i) ? '<i class="hid"></i>' : "<i></i>")).join("");
@@ -736,6 +766,20 @@
     else if (S.overlay && !S.guessing && !m.native && !S.agree && methodOf(m) !== "off") msgs.push(S.occlusion[m.id + ":" + S.clip] ? T("occFlatBadge", { m: m.name }) : T("noBuiltIn", { m: m.name }));
     main.cv.setAttribute("aria-label", T("frameAt", { t: t2s(t) }) + (ed ? ", " + T("editedLower") : ""));
     const badge = $("#badge"); badge.textContent = msgs.join(" · "); badge.hidden = !msgs.length || (ed && S.compare);
+  }
+  /* Maps are on the frame as the models saw it (as decoded). A rotated phone video is shown upright,
+     so its overlays are turned the same way: cell (row, col) of an n x n grid moves with the picture. */
+  function turn(i, n) {
+    const r = (((S.R && S.R.video.rotation) || 0) % 360 + 360) % 360, y = Math.floor(i / n), x = i % n;
+    if (r === 90) return (n - 1 - x) * n + y;
+    if (r === 180) return (n - 1 - y) * n + (n - 1 - x);
+    if (r === 270) return x * n + (n - 1 - y);
+    return i;
+  }
+  function turned(hm) {
+    if (!hm || !((S.R.video.rotation || 0) % 360)) return hm;
+    const h = new Array(hm.h.length); hm.h.forEach((v, i) => { h[turn(i, hm.n)] = v; });
+    return Object.assign({}, hm, { h });
   }
   function go(c, i) {
     c = clamp(c, 0, S.src.nClips - 1); i = clamp(i, 0, N(c) - 1);
@@ -841,9 +885,13 @@
       q = T("qAreas"); run = T("runAreas");
       if (res) { const a = pct(res.before), b = pct(res.after), r = pct(res.random_after); rows = [{ l: T("itsPicks"), a, b }, { l: T("randomPicks"), a, b: r, dim: true }]; say = verdict(b - a, r - a, "wAreas"); done = true; }
     } else {
-      q = T("qNoMap", { m: m.name }); run = T("runUseMap");
-      const occ = S.occlusion[m.id + ":" + S.clip];
-      if (occ) { done = true; say = Math.max(...occ.flat()) < 0.005 ? T("occFlat", { m: m.name, c: S.clip + 1 }) : T("mapReady", { c: S.clip + 1 }); }
+      const occ = S.occlusion[m.id + ":" + S.clip], ares = S.probes[`${m.id}:${S.clip}:areas`];
+      if (!occ) { q = T("qNoMap", { m: m.name }); run = T("runUseMap"); }
+      else if (Math.max(...occ.flat()) < 0.005) { q = T("qNoMap", { m: m.name }); run = T("runUseMap"); done = true; say = T("occFlat", { m: m.name, c: S.clip + 1 }); }
+      else { // the map exists: the same test MARS has, on the map's top cells
+        q = T("qAreas"); run = T("runAreasOcc");
+        if (ares) { const a = pct(ares.before), b = pct(ares.after), r = pct(ares.random_after); rows = [{ l: T("itsPicks"), a, b }, { l: T("randomPicks"), a, b: r, dim: true }]; say = verdict(b - a, r - a, "wAreas"); done = true; }
+      }
     }
     $("#test-q").textContent = q; $("#test-run").textContent = run;
     $("#test-run").parentElement.hidden = done; $("#test-res").hidden = !done;
@@ -901,7 +949,8 @@
         if (!S.sweeps[key]) { await warm("sweep", m, clip); S.sweeps[key] = await api(`jobs/${S.job}/sweep`, { model: m.id, clip }); }
         const sw = S.sweeps[key];
         if (clip === S.clip) { S.removed = sw.order.slice(0, Math.min(TOPK, sw.top.length - 1)); S.zoom = "clip"; await rescore(); }
-      } else if (!m.native) { await ensureOcclusion(m, clip); S.method[m.id] = "occlusion"; S.agree = false; S.overlay = true; }
+      } else if (!m.native && !S.occlusion[m.id + ":" + clip]) { await ensureOcclusion(m, clip); S.method[m.id] = "occlusion"; S.agree = false; S.overlay = true; }
+      else if (!m.native) { S.probes[`${m.id}:${clip}:areas`] = await api(`jobs/${S.job}/probe`, { model: m.id, clip, kind: "areas" }); }
       else { await warm("probe", m, clip); S.probes[`${m.id}:${clip}:patches`] = await api(`jobs/${S.job}/probe`, { model: m.id, clip, kind: "patches" }); }
     } catch (e) { failed = e.message; }
     btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = label;
@@ -915,6 +964,7 @@
     const m = S.models[S.focus];
     if (S.test === "frames") { S.removed = []; S.rescored = null; }
     else if (m.native) delete S.probes[`${m.id}:${S.clip}:patches`];
+    else if (S.probes[`${m.id}:${S.clip}:areas`]) delete S.probes[`${m.id}:${S.clip}:areas`];
     else delete S.occlusion[m.id + ":" + S.clip];
     refresh(); $("#test-run").focus();
   });
@@ -933,12 +983,14 @@
     if (S.playing) { prefetch(); return; }
     const tok = preTok, job = S.job, clip = S.clip, m = S.models[S.focus], mars = S.models.find((x) => x.native);
     const todo = [["sweep", m]].concat(mars ? [["probe", mars]] : []);
+    if (S.models.length > 1) S.models.filter((x) => !x.native).forEach((x) => todo.push(["occlusion", x])); // for "areas all detectors mark"
     for (const [kind, x] of todo) {
       await inflight;
       if (tok !== preTok || job !== S.job) return;
       const key = preKey(job, kind, x, clip);
-      if (pending.has(key) || warmed.has(key) || (kind === "sweep" ? S.sweeps[x.id + ":" + clip] : S.probes[`${x.id}:${clip}:patches`])) continue;
-      const body = kind === "sweep" ? { model: x.id, clip, record: false } : { model: x.id, clip, kind: "patches", record: false };
+      const have = { sweep: S.sweeps[x.id + ":" + clip], probe: S.probes[`${x.id}:${clip}:patches`], occlusion: S.occlusion[x.id + ":" + clip] }[kind];
+      if (pending.has(key) || warmed.has(key) || have) continue;
+      const body = kind === "probe" ? { model: x.id, clip, kind: "patches", record: false } : { model: x.id, clip, record: false };
       const req = api(`jobs/${job}/${kind}`, body).then(() => { warmed.add(key); }, () => {}).finally(() => pending.delete(key));
       pending.set(key, req); inflight = req;
       await req;

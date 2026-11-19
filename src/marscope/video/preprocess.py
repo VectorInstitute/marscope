@@ -22,6 +22,40 @@ class VideoMeta:
     height: int
     fps: float
     size_bytes: int
+    rotation: int = 0  # degrees counter-clockwise to show the video upright (phone videos); display only
+
+
+# The web app's limits; the CLI warns past them (see marscope.cli) instead of refusing.
+MAX_SECONDS = 120.0
+MAX_LONG_SIDE = 1920
+MAX_SHORT_SIDE = 1080
+DAMAGED = (
+    "the file looks damaged or incomplete (for example still downloading, or cut short); "
+    "re-export or re-download it and try again"
+)
+
+
+def describe_read_error(error: Exception) -> str:
+    """Turn a decoding error into a message a person can act on.
+
+    Parameters
+    ----------
+    error : Exception
+        What PyAV or :func:`read_meta` raised.
+
+    Returns
+    -------
+    str
+        The message.
+
+    Examples
+    --------
+    >>> describe_read_error(ValueError("clip.mp4 has no video stream"))
+    'clip.mp4 has no video stream'
+    """
+    if isinstance(error, av.FFmpegError):
+        return DAMAGED
+    return str(error)
 
 
 @dataclass
@@ -76,12 +110,15 @@ def read_meta(path: str | Path) -> VideoMeta:
             duration = container.duration / 1_000_000
         else:
             duration = 0.0
+        first = next(container.decode(stream), None)  # the display rotation is read from a frame
+        rotation = int(round(getattr(first, "rotation", 0) or 0)) % 360 if first is not None else 0
         return VideoMeta(
             duration_s=duration,
             width=stream.codec_context.width,
             height=stream.codec_context.height,
             fps=fps,
             size_bytes=path.stat().st_size,
+            rotation=rotation,
         )
 
 

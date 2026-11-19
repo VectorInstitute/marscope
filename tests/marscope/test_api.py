@@ -24,6 +24,7 @@ class StubToolkit:
         self.result = result
         self.calls: list[dict[str, Any]] = []
         self.probes = 0
+        self.maps = 0
 
     def analyze(self, path: Path, **kwargs: Any) -> VideoResult:
         """Return the fixed result with fresh notes."""
@@ -53,7 +54,12 @@ class StubToolkit:
         """Return a fixed curve."""
         return {"model": model, "clip": clip, "order": list(range(16)), "top": [0.9, 0.5], "random": [0.9, 0.88]}
 
-    def probe(self, *_args: Any) -> dict[str, Any]:
+    def occlusion(self, *_args: Any, **_kwargs: Any) -> list[list[float]]:
+        """Return a fixed 8 x 8 map with one strong cell."""
+        self.maps += 1
+        return [[0.2 if (r, c) == (3, 4) else 0.0 for c in range(8)] for r in range(8)]
+
+    def probe(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
         """Return a fixed probe result."""
         self.probes += 1
         return {"probe": "remove_top_frames", "count": 6, "before": 0.9, "after": 0.4, "random_after": 0.85}
@@ -202,3 +208,34 @@ def test_report_keeps_the_session_tests_and_ask(client: TestClient, video: Path)
     assert client.post(f"/jobs/{job_id}/ask", json={"chip": "tests", "question": "x"}).status_code == 422
     assert client.post(f"/jobs/{job_id}/ask", json={"chip": "nope"}).status_code == 422
     assert client.post(f"/jobs/{job_id}/ask", json={"question": "x" * 501}).status_code == 422
+
+
+def test_a_gpu_out_of_memory_says_what_to_do(client: TestClient, video: Path) -> None:
+    stub = client.app.state.manager.toolkit  # type: ignore[attr-defined]
+
+    def boom(*_args: Any, **_kwargs: Any) -> None:
+        raise RuntimeError("[ONNXRuntimeError] : 6 : RUNTIME_EXCEPTION : CUDA failure 2: out of memory")
+
+    stub.analyze = boom
+    with video.open("rb") as f:
+        job_id = client.post("/jobs", files={"video": ("clip.mp4", f, "video/mp4")}, data={"models": "mars"}).json()[
+            "id"
+        ]
+    body = wait_done(client, job_id)
+    assert body["status"] == "failed" and "ran out of memory" in body["error"] and "--sequential" in body["error"]
+
+
+def test_occlusion_is_cached_and_feeds_the_areas_test(client: TestClient, video: Path) -> None:
+    stub = client.app.state.manager.toolkit  # type: ignore[attr-defined]
+    with video.open("rb") as f:
+        job_id = client.post("/jobs", files={"video": ("clip.mp4", f, "video/mp4")}, data={"models": "mars"}).json()[
+            "id"
+        ]
+    wait_done(client, job_id)
+    pre = client.post(f"/jobs/{job_id}/occlusion", json={"model": "mars", "clip": 0, "record": False}).json()
+    assert pre["map"][3][4] == 0.2
+    client.post(f"/jobs/{job_id}/occlusion", json={"model": "mars", "clip": 0})
+    areas = client.post(f"/jobs/{job_id}/probe", json={"model": "mars", "clip": 0, "kind": "areas"})
+    assert areas.status_code == 200 and stub.maps == 1  # one map for the pre-run, the map request and the test
+    kinds = [r["kind"] for r in client.post(f"/jobs/{job_id}/report", json={"format": "json"}).json()["records"]]
+    assert kinds == ["occlusion", "areas_test"]

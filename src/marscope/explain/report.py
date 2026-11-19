@@ -77,6 +77,12 @@ INFERENCE = re.compile(
     re.IGNORECASE,
 )
 CITATION = re.compile(r"\[([a-z0-9-]+)\]")
+# A sentence about the user's tests ("No user tests were run"), dropped when none ran.
+NO_TESTS = re.compile(
+    r"\b(user|user's|your|additional|further|no)\b[^.]*\btests?\b(?!\s+videos?)|\btests?\b[^.]*\b(were|was)\s+(not\s+)?run\b"
+    r"|\b(essais?|tests?)\b[^.]*\b(fait|faits|lancé|lancés|réalisé|réalisés)\b",
+    re.IGNORECASE,
+)
 # Number words that can carry a score ("one" or "two" are everyday words, so not those)
 NUMBER_WORDS = re.compile(
     r"\b(zero|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|"
@@ -359,7 +365,10 @@ def build_report(
             system = SYSTEM_PROMPT + (FRENCH if lang == "fr" else "")
             user = "Reference keys you may cite: " + ", ".join(allowed) + "\n\nFacts:\n" + json.dumps(payload, indent=1)
             text, status = complete(system, user, settings, timeout=timeout)
-            prose = screen(text or "", allowed, min_sentences=2)
+            raw = text or ""
+            if not experiments:  # models often mention "no tests" despite the prompt; such a sentence adds nothing
+                raw = " ".join(x for x in re.split(r"(?<=[.!?])\s+", raw) if not NO_TESTS.search(x))
+            prose = screen(raw, allowed, min_sentences=2)
             if prose:
                 summary, source = prose, "llm"
                 llm_info = {"model": settings["model"], "endpoint": endpoint_host(settings["base_url"])}

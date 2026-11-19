@@ -90,3 +90,9 @@ def test_edits_change_frames_and_identity_does_not(video: Path) -> None:
 def test_edits_reject_out_of_range() -> None:
     with pytest.raises(ValueError, match="out of range"):
         Edits(jpeg=5)
+
+
+def test_meta_has_no_rotation_for_a_plain_video(video: Path) -> None:
+    from marscope.video.preprocess import read_meta  # noqa: PLC0415
+
+    assert read_meta(video).rotation == 0

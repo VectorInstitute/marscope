@@ -2,6 +2,8 @@
 
 import argparse
 import logging
+import math
+import socket
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -13,6 +15,7 @@ from marscope.models.registry import parse_models
 
 if TYPE_CHECKING:
     from marscope.schema import VideoResult
+    from marscope.video.preprocess import VideoMeta
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -86,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
         from marscope.api import serve  # noqa: PLC0415
 
         preload = models if args.models != "all" else ["mars"]  # with all, the others load when picked
-        print(f"MARScope at http://{args.host}:{args.port}  (the video stays on this machine)")
+        print(serve_banner(args.host, args.port))
         serve(host=args.host, port=args.port, toolkit=toolkit, preload=preload)
         return 0
 
@@ -104,10 +107,14 @@ def main(argv: list[str] | None = None) -> int:
 
     import av  # noqa: PLC0415
 
+    from marscope.video.preprocess import describe_read_error, read_meta  # noqa: PLC0415
+
     try:
+        for warning in size_warnings(read_meta(args.video), len(models)):
+            print(f"marscope: {warning}", file=sys.stderr)
         result = toolkit.analyze(args.video, jurisdiction=args.jurisdiction, language=args.language, progress=progress)
     except (ValueError, av.FFmpegError) as error:
-        print(f"marscope: could not read {args.video.name}: {error}", file=sys.stderr)
+        print(f"marscope: could not read {args.video.name}: {describe_read_error(error)}", file=sys.stderr)
         return 2
     if not args.json:
         print(file=sys.stderr)
@@ -134,6 +141,67 @@ def _write_report(args: argparse.Namespace, result: "VideoResult") -> None:
     else:
         out.write_text(to_markdown(report) if args.report == "markdown" else to_html(report), encoding="utf-8")
     print(f"report written to {out}")
+
+
+def size_warnings(meta: "VideoMeta", n_models: int) -> list[str]:
+    """Warn when a video is past the web app's limits; the CLI still analyzes it.
+
+    Parameters
+    ----------
+    meta : VideoMeta
+        From :func:`marscope.video.preprocess.read_meta`.
+    n_models : int
+        Models that will run.
+
+    Returns
+    -------
+    list of str
+        Warnings (empty for a video the web app would take).
+    """
+    from marscope.video.preprocess import MAX_LONG_SIDE, MAX_SECONDS, MAX_SHORT_SIDE  # noqa: PLC0415
+
+    out = []
+    long_side, short_side = max(meta.width, meta.height), min(meta.width, meta.height)
+    if meta.duration_s > MAX_SECONDS:
+        clips = math.ceil(meta.duration_s * (meta.fps or 30) / 2 / 64)
+        out.append(
+            f"the video is {meta.duration_s:.0f} s, longer than the web app's {MAX_SECONDS:.0f} s limit: about "
+            f"{clips} clips for each of {n_models} model(s), so this can take many minutes"
+        )
+    if long_side > MAX_LONG_SIDE or short_side > MAX_SHORT_SIDE:
+        out.append(f"the video is {meta.width}x{meta.height}, above 1080p: decoding is slower and uses more memory")
+    return out
+
+
+def serve_banner(host: str, port: int) -> str:
+    """Return the ``--serve`` start message: the link, and how to reach it remotely.
+
+    Parameters
+    ----------
+    host : str
+        Interface the server listens on.
+    port : int
+        Port.
+
+    Returns
+    -------
+    str
+        One or two lines.
+
+    Examples
+    --------
+    >>> serve_banner("127.0.0.1", 8000)
+    'MARScope at http://localhost:8000/app  (the video stays on this machine)'
+    """
+    local = host in ("127.0.0.1", "localhost", "0.0.0.0", "::")  # noqa: S104 - only compared, never bound here
+    lines = [f"MARScope at http://{'localhost' if local else host}:{port}/app  (the video stays on this machine)"]
+    if host in ("0.0.0.0", "::"):  # noqa: S104
+        name = socket.gethostname()
+        lines.append(
+            f"Listening on all interfaces. From another machine, open http://{name}:{port}/app or forward a port: "
+            f"ssh -N -L 8010:{name}:{port} <user>@<login-host>, then http://localhost:8010/app"
+        )
+    return "\n".join(lines)
 
 
 def format_summary(result: dict[str, object]) -> str:

@@ -169,3 +169,18 @@ def test_clip_event_carries_live_score() -> None:
     assert out["fake"] == 0.9123
     assert out["real_rank"] == round(rank(0.91234, runner.ranges.real), 1)
     assert out["real_high"] == round(runner.ranges.real_range()[1], 4)
+
+
+def test_areas_test_hides_the_top_occlusion_cells() -> None:
+    frames = np.ones((4, 3, 24, 24), dtype=np.float32)
+    occ = np.zeros((8, 8))
+    occ[2, 5] = 0.5
+    occ[7, 0] = 0.4
+
+    def score(f: np.ndarray, n: int) -> float:
+        return float(f[:n].mean())
+
+    res = ev.probe_occlusion(score, frames, 4, occ, k=2, seed=1)
+    assert res.count == 2 and res.after < res.before
+    assert len(res.cells) == 4 and len(res.cells[0]) == 18  # two cells, each 3 x 3 on the display grid
+    assert 2 * 3 * 24 + 5 * 3 in res.cells[0] and 7 * 3 * 24 in res.cells[0]

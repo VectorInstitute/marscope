@@ -545,3 +545,4 @@ ol.rrefs { margin: 0; padding-left: 0; list-style: none; font-size: 13px; displa
 .nd summary::after { content: " ›"; }
 .nd[open] summary::after { content: " ⌄"; }
 .nd p { font-size: 13px; color: var(--secondary); margin-top: 4px; }
+.notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 var(--gutter) 12px; padding: 12px 16px; border-radius: 14px; background: var(--grouped); font-size: 14px; font-weight: 600; }

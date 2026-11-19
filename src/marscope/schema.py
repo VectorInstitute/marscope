@@ -29,6 +29,11 @@ class VideoInfo(_Model):
     n_kept_frames: int = Field(description="Frames kept after the stride")
     n_clips: int
     frame_stride: int = Field(default=2, description="Every n-th decoded frame is kept")
+    rotation: int = Field(
+        default=0,
+        description="Degrees counter-clockwise to show the video upright. Display only: the models see the frames "
+        "as decoded, as in training",
+    )
 
 
 class FaceSummary(_Model):

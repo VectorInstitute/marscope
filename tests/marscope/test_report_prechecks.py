@@ -113,3 +113,32 @@ def test_cli_reports_an_unreadable_video(tmp_path: Path, capsys: pytest.CaptureF
     junk.write_bytes(b"\x00not a video" * 100)
     assert main(["--video", str(junk), "--no-faces"]) == 2
     assert "could not read junk.mp4" in capsys.readouterr().err
+
+
+def test_serve_banner_links_to_the_app() -> None:
+    from marscope.cli import serve_banner  # noqa: PLC0415
+
+    assert serve_banner("0.0.0.0", 8000).splitlines()[0].startswith("MARScope at http://localhost:8000/app")  # noqa: S104
+    assert "ssh -N -L 8010:" in serve_banner("0.0.0.0", 8000)  # noqa: S104
+    assert len(serve_banner("127.0.0.1", 8000).splitlines()) == 1
+
+
+def test_cli_warns_past_the_web_limits() -> None:
+    from marscope.cli import size_warnings  # noqa: PLC0415
+    from marscope.video.preprocess import VideoMeta  # noqa: PLC0415
+
+    long = VideoMeta(duration_s=130.0, width=3840, height=2160, fps=30.0, size_bytes=1)
+    warnings = size_warnings(long, 3)
+    assert (
+        len(warnings) == 2 and "about 31 clips for each of 3 model(s)" in warnings[0] and "above 1080p" in warnings[1]
+    )
+    assert size_warnings(VideoMeta(duration_s=10.0, width=1280, height=720, fps=30.0, size_bytes=1), 1) == []
+
+
+def test_damaged_files_get_a_plain_message(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from marscope.cli import main  # noqa: PLC0415
+
+    junk = tmp_path / "half.mp4"
+    junk.write_bytes(b"\x00\x00\x00\x20ftypisom" + b"\x00" * 400)
+    assert main(["--video", str(junk), "--no-faces"]) == 2
+    assert "damaged or incomplete" in capsys.readouterr().err

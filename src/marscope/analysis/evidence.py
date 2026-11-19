@@ -5,6 +5,7 @@ Everything here describes what a model relies on, never where a forgery is.
 
 import math
 from collections.abc import Callable
+from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass
 from typing import Any
 
@@ -564,7 +565,84 @@ def probe_patches(
     return ProbeResult("blank_top_patches", count, before, after, float(np.mean(randoms)), cells)
 
 
-def occlusion_map(score: Scorer, frames: np.ndarray, n_valid: int, grid: int = 8) -> np.ndarray:
+AREA_CELLS = 8  # cells of the 8 x 8 occlusion grid hidden together by the areas test (1/8 of the frame)
+
+
+def probe_occlusion(
+    score: Scorer,
+    frames: np.ndarray,
+    n_valid: int,
+    occlusion: np.ndarray,
+    *,
+    k: int = AREA_CELLS,
+    seed: int = 0,
+) -> ProbeResult:
+    """Hide a model's top occlusion cells in every frame; compare with random cells.
+
+    The same test as :func:`probe_patches`, for models without a built-in map (GenD,
+    DFD-HR): the cells are the ``k`` that lowered the score most when hidden one by one.
+
+    Parameters
+    ----------
+    score : callable
+        Scores one clip.
+    frames : numpy.ndarray
+        (T, 3, S, S) clip.
+    n_valid : int
+        Real frames.
+    occlusion : numpy.ndarray
+        (grid, grid) occlusion map (drop in the score per hidden cell).
+    k : int
+        Cells hidden.
+    seed : int
+        Random seed.
+
+    Returns
+    -------
+    ProbeResult
+        Scores before, after, and the mean over three random draws; ``cells`` gives the
+        hidden cells of each frame on the 24 x 24 display grid.
+
+    Examples
+    --------
+    >>> occ = np.zeros((8, 8))
+    >>> occ[0, 0] = 1.0
+    >>> clip = np.ones((2, 3, 24, 24))
+    >>> res = probe_occlusion(lambda f, n: float(f.mean()), clip, 2, occ, k=1)
+    >>> res.count, res.cells[0][:3]
+    (1, [0, 1, 2])
+    """
+    grid = occlusion.shape[0]
+    flat = np.asarray(occlusion, dtype=np.float64).ravel()
+    top = np.argsort(-flat, kind="stable")[:k]
+    chosen = np.zeros(flat.size, dtype=bool)
+    chosen[top] = True
+    mask = chosen.reshape(grid, grid)
+    before = score(frames, n_valid)
+    after = score(blank_cells(frames, dict.fromkeys(range(n_valid), mask), grid=grid), n_valid)
+    rng = np.random.default_rng(seed)
+    randoms = []
+    for _ in range(3):
+        m = np.zeros(flat.size, dtype=bool)
+        m[rng.choice(flat.size, size=k, replace=False)] = True
+        randoms.append(
+            score(blank_cells(frames, dict.fromkeys(range(n_valid), m.reshape(grid, grid)), grid=grid), n_valid)
+        )
+    scale = GRID // grid  # each occlusion cell covers scale x scale display cells
+    cells = [divmod(int(i), grid) for i in top]
+    display = sorted(
+        (r * scale + dy) * GRID + c * scale + dx for r, c in cells for dy in range(scale) for dx in range(scale)
+    )
+    return ProbeResult("blank_top_areas", k, before, after, float(np.mean(randoms)), [display] * n_valid)
+
+
+def occlusion_map(
+    score: Scorer,
+    frames: np.ndarray,
+    n_valid: int,
+    grid: int = 8,
+    guard: AbstractContextManager[Any] | None = None,
+) -> np.ndarray:
     """Model-agnostic attribution: blank one grid cell in every frame and re-score.
 
     Parameters
@@ -577,6 +655,9 @@ def occlusion_map(score: Scorer, frames: np.ndarray, n_valid: int, grid: int = 8
         Real frames.
     grid : int
         Cells per side (8: 64 passes).
+    guard : context manager, optional
+        Held around each pass only (for example the server's GPU lock), so other work
+        can use the GPU between passes instead of waiting for the whole map.
 
     Returns
     -------
@@ -584,12 +665,15 @@ def occlusion_map(score: Scorer, frames: np.ndarray, n_valid: int, grid: int = 8
         (grid, grid) drop in ``fake_prob`` when the cell is blanked; positive means the
         cell pushed toward fake.
     """
-    base = score(frames, n_valid)
+    hold = guard if guard is not None else nullcontext()
+    with hold:
+        base = score(frames, n_valid)
     result = np.zeros((grid, grid), dtype=np.float32)
     for r in range(grid):
         for c in range(grid):
             mask = np.zeros((grid, grid), dtype=bool)
             mask[r, c] = True
             blanked = blank_cells(frames, dict.fromkeys(range(n_valid), mask), grid=grid)
-            result[r, c] = base - score(blanked, n_valid)
+            with hold:
+                result[r, c] = base - score(blanked, n_valid)
     return result

@@ -37,7 +37,7 @@ from marscope.models.scheduler import free_vram_gb
 from marscope.pipeline import QUALITIES, MARScope, package_version
 from marscope.schema import Experiment, VideoResult
 from marscope.video.edits import Edits, apply_edits
-from marscope.video.preprocess import read_meta
+from marscope.video.preprocess import MAX_LONG_SIDE, MAX_SECONDS, MAX_SHORT_SIDE, describe_read_error, read_meta
 
 
 log = logging.getLogger(__name__)
@@ -57,9 +57,9 @@ class Limits:
     """Upload limits, checked before a job is created. All configurable."""
 
     max_bytes: int = 500 * 1024 * 1024
-    max_seconds: float = 120.0
-    max_long_side: int = 1920
-    max_short_side: int = 1080
+    max_seconds: float = MAX_SECONDS
+    max_long_side: int = MAX_LONG_SIDE
+    max_short_side: int = MAX_SHORT_SIDE
     job_ttl_seconds: float = 3600.0
 
 
@@ -82,7 +82,8 @@ class Job:
     lock: threading.Condition = field(default_factory=threading.Condition)
     experiments: dict[str, Experiment] = field(default_factory=dict)
     reports: dict[tuple[str, bool, int], Report] = field(default_factory=dict)
-    cache: dict[str, dict[str, Any]] = field(default_factory=dict)  # sweeps and probes, computed once
+    cache: dict[str, dict[str, Any]] = field(default_factory=dict)  # sweeps, probes and maps, computed once
+    inflight: dict[str, threading.Event] = field(default_factory=dict)  # maps being computed
     version: int = 0
 
     def record(self, key: str, experiment: Experiment) -> None:
@@ -127,7 +128,7 @@ class ProbeRequest(BaseModel):
 
     model: str
     clip: int = Field(ge=0)
-    kind: Literal["frames", "patches"]
+    kind: Literal["frames", "patches", "areas"]
     record: bool = Field(default=True, description="List it in the report (false for a background pre-run)")
 
 
@@ -171,6 +172,7 @@ class OcclusionRequest(BaseModel):
 
     model: str
     clip: int = Field(ge=0)
+    record: bool = Field(default=True, description="List it in the report (false for a background pre-run)")
 
 
 class ReportRequest(BaseModel):
@@ -195,6 +197,36 @@ class NotesRequest(BaseModel):
 
     jurisdiction: Literal["eu", "ca", "us", "all"] | None = None
     language: Literal["en", "fr"] = "en"
+
+
+GPU_OUT_OF_MEMORY = (
+    "the GPU ran out of memory: close other programs using it, pick fewer models, or start MARScope with --sequential"
+)
+
+
+def friendly_error(error: BaseException) -> str:
+    """Turn an error from the models into a message a person can act on.
+
+    Parameters
+    ----------
+    error : BaseException
+        What the analysis or a test raised.
+
+    Returns
+    -------
+    str
+        The message (the error's own text when there is nothing clearer to say).
+
+    Examples
+    --------
+    >>> friendly_error(RuntimeError("CUDA failure 2: out of memory"))[:31]
+    'the GPU ran out of memory: clos'
+    """
+    text = str(error) or type(error).__name__
+    lowered = text.lower()
+    if "out of memory" in lowered or "failed to allocate" in lowered or "cudaerrormemoryallocation" in lowered:
+        return GPU_OUT_OF_MEMORY
+    return text
 
 
 def safe_name(filename: str | None) -> str:
@@ -316,7 +348,7 @@ class JobManager:
             try:
                 meta = read_meta(video)
             except Exception as error:
-                raise HTTPException(400, "the video could not be read") from error
+                raise HTTPException(400, describe_read_error(error)) from error
             if meta.duration_s > self.limits.max_seconds:
                 raise HTTPException(400, f"the video is longer than {self.limits.max_seconds:.0f} seconds")
             long_side, short_side = max(meta.width, meta.height), min(meta.width, meta.height)
@@ -399,7 +431,7 @@ class JobManager:
                 job.emit({"type": "stage", "stage": "done"})
             except Exception as error:  # noqa: BLE001 - reported to the client as a failed job
                 log.exception("job %s failed", job_id)
-                job.error = str(error) or type(error).__name__
+                job.error = friendly_error(error)
                 job.emit({"type": "stage", "stage": "failed", "error": job.error})
             finally:
                 with job.lock:
@@ -593,15 +625,18 @@ def create_app(toolkit: MARScope | None = None, limits: Limits | None = None) ->
         key = f"probe:{body.kind}:{body.model}:{body.clip}"
         out = job.cache.get(key)
         if out is None:
+            occ = occlusion_of(job, body.model, body.clip) if body.kind == "areas" else None
             try:
                 with manager.gpu:  # check again: a request for the same test may have held the GPU
-                    out = job.cache.get(key) or toolkit.probe(job.video, result, body.model, body.clip, body.kind)
+                    out = job.cache.get(key) or toolkit.probe(
+                        job.video, result, body.model, body.clip, body.kind, occlusion=occ
+                    )
             except ValueError as error:
                 raise HTTPException(400, str(error)) from error
             job.cache[key] = out
         if not body.record:
             return out
-        kind: Literal["areas_test", "frames_test"] = "areas_test" if body.kind == "patches" else "frames_test"
+        kind: Literal["areas_test", "frames_test"] = "frames_test" if body.kind == "frames" else "areas_test"
         job.record(
             f"{kind}:{body.model}:{body.clip}",
             Experiment(
@@ -734,14 +769,45 @@ def create_app(toolkit: MARScope | None = None, limits: Limits | None = None) ->
         job, result = manager.result(job_id)
         if body.model not in result.models or body.clip >= len(result.models[body.model].clips):
             raise HTTPException(404, "no such model or clip in this result")
-        with manager.gpu:
-            grid = toolkit.occlusion(job.video, body.model, body.clip)
-        flat = max((v for row in grid for v in row), default=0.0) < FLAT_MAP
-        job.record(
-            f"occlusion:{body.model}:{body.clip}",
-            Experiment(kind="occlusion", clip=body.clip, model=body.model, flat=flat),
-        )
+        grid = occlusion_of(job, body.model, body.clip)
+        if body.record:
+            flat = max((v for row in grid for v in row), default=0.0) < FLAT_MAP
+            job.record(
+                f"occlusion:{body.model}:{body.clip}",
+                Experiment(kind="occlusion", clip=body.clip, model=body.model, flat=flat),
+            )
         return {"model": body.model, "clip": body.clip, "map": grid}
+
+    def occlusion_of(job: Job, model_id: str, clip: int) -> list[list[float]]:
+        """Return a clip's occlusion map, computed once per job and cached.
+
+        The GPU lock is held per pass, not for the whole map, so the user's own requests
+        run between passes. A second request for a map being computed waits for it.
+        """
+        key = f"occlusion:{model_id}:{clip}"
+        while True:
+            with job.lock:
+                cached = job.cache.get(key)
+                if cached is not None:
+                    grid: list[list[float]] = cached["map"]
+                    return grid
+                running = job.inflight.get(key)
+                if running is None:
+                    running = job.inflight[key] = threading.Event()
+                    mine = True
+                else:
+                    mine = False
+            if not mine:
+                running.wait()
+                continue  # cached now, or the other request failed and this one computes it
+            try:
+                grid = toolkit.occlusion(job.video, model_id, clip, guard=manager.gpu)
+                job.cache[key] = {"map": grid}
+                return grid
+            finally:
+                with job.lock:
+                    job.inflight.pop(key, None)
+                running.set()
 
     @app.post("/jobs/{job_id}/report", response_model=None)
     def report(job_id: str, body: ReportRequest) -> Response | dict[str, Any]:
@@ -826,6 +892,11 @@ def create_app(toolkit: MARScope | None = None, limits: Limits | None = None) ->
     @app.exception_handler(HTTPException)
     def http_error(_request: Any, error: HTTPException) -> JSONResponse:
         return JSONResponse({"error": error.detail}, status_code=error.status_code)
+
+    @app.exception_handler(Exception)
+    def unexpected_error(_request: Any, error: Exception) -> JSONResponse:
+        log.exception("request failed")
+        return JSONResponse({"error": friendly_error(error)}, status_code=500)
 
     # The web UI last, at the root: relative links work served and opened as files.
     app.mount("/", StaticFiles(directory=str(WEB), html=True), name="web")
