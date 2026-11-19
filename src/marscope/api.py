@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field
 
 from marscope.analysis.ranges import UsualRanges
 from marscope.explain.ask import CHIPS, ask, chip_answer
-from marscope.explain.policy import JURISDICTIONS, apply_policy, load_policy, references
+from marscope.explain.policy import JURISDICTIONS, apply_policy, assess, load_policy, references
 from marscope.explain.report import Report, build_report, llm_settings, shown_frames, to_html, to_markdown, to_pdf, tr
 from marscope.models.registry import MODEL_ORDER, MODELS, parse_models
 from marscope.models.runner import download
@@ -896,11 +896,13 @@ def create_app(toolkit: MARScope | None = None, limits: Limits | None = None) ->
         """Re-apply the policy for another region or language. Scores do not change."""
         job, result = manager.result(job_id)
         result.notes = apply_policy(result, body.jurisdiction, body.language)
+        result.reading = assess(result, body.language)
         result.jurisdiction = body.jurisdiction
         job.result = result
         job.changed()
         return {
             "notes": [n.model_dump(mode="json") for n in result.notes],
+            "reading": result.reading.model_dump(mode="json"),
             "references": references(sorted({k for n in result.notes for k in n.references})),
         }
 

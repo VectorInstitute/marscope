@@ -74,23 +74,23 @@ cards:
     q: {en: "Why does it matter which part was changed?", fr: "Pourquoi importe-t-il de savoir quelle partie a été changée?"}
     keywords: [which part, modality, face or voice, both, audio video, quelle partie, visage ou voix]
     answer:
-      en: "Knowing whether the face, the voice or both were changed shows what a detector is really reacting to, and what to check next. A single real-or-fake answer cannot tell you this. MARScope checks the picture only, not the sound."
-      fr: "Savoir si le visage, la voix ou les deux ont été changés montre à quoi un détecteur réagit vraiment, et quoi vérifier ensuite. Une seule réponse vrai ou faux ne le dit pas. MARScope vérifie l’image seulement, pas le son."
+      en: "Knowing whether the face, the voice or both were changed shows what a detector is really reacting to, and what to check next. A single real-or-fake answer leaves this out. MARScope checks the picture only."
+      fr: "Savoir si le visage, la voix ou les deux ont été changés montre à quoi un détecteur réagit vraiment, et quoi vérifier ensuite. Une seule réponse vrai ou faux l’omet. MARScope vérifie l’image seulement."
     references: [mozaic]
     source: "MOZAIC §1 Introduction"
   detector:
     q: {en: "How does a deepfake detector work?", fr: "Comment fonctionne un détecteur d’hypertrucages?"}
     keywords: [detector, detection, how it works, classifier, spot, détecteur, détection, fonctionne]
     answer:
-      en: "A detector is an AI model trained on many real and altered videos to learn the patterns that tell them apart, such as fine pixel detail, edges around faces or unnatural motion. It gives a score, not a fact, and it only knows the kinds it learned from."
-      fr: "Un détecteur est un modèle d’IA entraîné sur beaucoup de vidéos vraies et modifiées pour apprendre ce qui les distingue : détails fins, contours de visage, mouvements peu naturels. Il donne un score, pas un fait, et ne connaît que ce qu’il a appris."
+      en: "A detector is an AI model trained on many real and altered videos to learn the patterns that tell them apart, such as fine pixel detail, edges around faces or unnatural motion. Its output is a score, and it only knows the kinds of fakes it learned from."
+      fr: "Un détecteur est un modèle d’IA entraîné sur beaucoup de vidéos vraies et modifiées pour apprendre ce qui les distingue : détails fins, contours de visage, mouvements peu naturels. Il donne un score, et ne connaît que ce qu’il a appris."
     references: [survey]
     source: "survey §4 Detection"
   score_not_proof:
-    q: {en: "Why is a score not proof?", fr: "Pourquoi un score n’est-il pas une preuve?"}
+    q: {en: "How far can I trust a score?", fr: "Jusqu’où se fier à un score?"}
     keywords: [proof, evidence, trust, reliable, accurate, certain, preuve, fiable, confiance]
     answer:
-      en: "A score is a model’s estimate, and models make mistakes, especially on videos unlike the ones they learned from. Scores are not calibrated chances, models disagree, and sharing a video can change them. Use a score as one signal next to the source, the context and expert review."
+      en: "A score is a model’s estimate, and models make mistakes, especially on videos unlike the ones they learned from. Scores are uncalibrated, models disagree, and sharing a video can change them. Treat a score as one signal next to the source, the context and expert review."
       fr: "Un score est une estimation de modèle, et les modèles se trompent, surtout sur des vidéos éloignées de leur apprentissage. Les scores ne sont pas des chances calibrées, les modèles divergent, et le partage peut les changer. C’est un signal parmi d’autres, avec la source, le contexte et un expert."
     references: [survey, nist-ai-100-4]
     source: "survey §7 Findings, §9 Discussion"
@@ -114,8 +114,8 @@ cards:
     q: {en: "Why do detectors disagree?", fr: "Pourquoi les détecteurs divergent-ils?"}
     keywords: [disagree, different, contradict, conflict, compare, divergent, différent, contradiction]
     answer:
-      en: "Each detector learned different clues: some read whole frames over time, others look at frames one by one or at fine detail. A video unlike their training videos can push them in different directions, which is a reason to check the source, not to pick one."
-      fr: "Chaque détecteur a appris des indices différents : certains lisent l’image entière dans le temps, d’autres chaque image ou les détails fins. Une vidéo éloignée de leur apprentissage peut les pousser dans des sens différents, ce qui invite à vérifier la source, pas à en choisir un."
+      en: "Each detector learned different clues: some read whole frames over time, others look at frames one by one or at fine detail. A video unlike their training videos can push them in different directions, so the next step is to check the source."
+      fr: "Chaque détecteur a appris des indices différents : certains lisent l’image entière dans le temps, d’autres chaque image ou les détails fins. Une vidéo éloignée de leur apprentissage peut les pousser dans des sens différents : l’étape suivante est de vérifier la source."
     references: [survey, mars]
     source: "survey §2.3 A3, §9; MARS §2"
   new_generators:
@@ -186,8 +186,8 @@ cards:
     q: {en: "What do the highlighted areas mean?", fr: "Que signifient les zones surlignées?"}
     keywords: [highlighted, map, heatmap, areas, evidence, overlay, zones, carte, surligné]
     answer:
-      en: "They show which parts of the frame raised a model’s score, not where an edit is. You can test them: hide those areas and compare with hiding random ones. If the score drops much more, the model was using them."
-      fr: "Elles montrent quelles parties de l’image ont fait monter le score d’un modèle, pas où se trouve une modification. Vous pouvez les tester : cachez ces zones et comparez avec des zones au hasard. Si le score baisse beaucoup plus, le modèle les utilisait."
+      en: "They show which parts of the frame raised a model’s score; an edit may be elsewhere. You can test them: hide those areas and compare with hiding random ones. If the score drops much more, the model was using them."
+      fr: "Elles montrent quelles parties de l’image ont fait monter le score d’un modèle; une modification peut se trouver ailleurs. Vous pouvez les tester : cachez ces zones et comparez avec des zones au hasard. Si le score baisse beaucoup plus, le modèle les utilisait."
     references: [mars]
     source: "MARS §3.5 Post-hoc evidence, §5 Faithfulness"
   c2pa:
@@ -266,8 +266,8 @@ cards:
     q: {en: "Can a chatbot tell if a video is fake?", fr: "Un agent conversationnel peut-il dire si une vidéo est fausse?"}
     keywords: [chatbot, chatgpt, gpt, claude, gemini, llm, assistant, ai assistant, agent conversationnel]
     answer:
-      en: "General AI assistants can notice some visible oddities, but they are less accurate than specialised detectors, miss most cloned voices, and can give convincing yet wrong explanations. Treat them as one extra opinion, not as a judge."
-      fr: "Les assistants d’IA généralistes repèrent certaines bizarreries visibles, mais sont moins précis que les détecteurs spécialisés, manquent la plupart des voix clonées, et peuvent donner des explications convaincantes mais fausses. Voyez-les comme un avis de plus, pas comme un juge."
+      en: "General AI assistants can notice some visible oddities, but they are less accurate than specialised detectors, miss most cloned voices, and can give convincing yet wrong explanations. Treat them as one extra opinion among others."
+      fr: "Les assistants d’IA généralistes repèrent certaines bizarreries visibles, mais sont moins précis que les détecteurs spécialisés, manquent la plupart des voix clonées, et peuvent donner des explications convaincantes mais fausses. Voyez-les comme un avis parmi d’autres."
     references: [survey, mozaic]
     source: "survey §4 Reasoning-based detection; MOZAIC §1"
   marscope:

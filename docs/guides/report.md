@@ -18,7 +18,7 @@ Exports from the sheet:
 | Copy | The report as Markdown, on the clipboard |
 | Download | PDF, HTML or Markdown, in the app's language |
 | Session (JSON) | The full result, your tests, the report text and your guess |
-| Evidence card | One PNG: the scores and their place, the trust results, the no-verdict line and the versions |
+| Evidence card | One PNG: the scores and their place, the trust results, the note on how to read them and the versions |
 
 Tick **Include the current frame** to put the frame you are on in the evidence card, the PDF and the
 HTML report. Nothing includes a frame unless you ask, and every file is saved on your machine.
@@ -40,7 +40,7 @@ What it receives and what is kept:
 - **Sent:** how unusual each score is for a real video (in words), the
   notes with their numbers removed, and your tests in words ("large drop", "little change"). Never
   the video or frames.
-- **Kept:** only sentences with no number (in digits or words) and no verdict, and only references
+- **Kept:** only sentences with no number (in digits or words) and no conclusion about the video, and only references
   the rules attached. Every number in the report comes from the template.
 - **If it fails** (no answer within 40 seconds, an error, or prose that breaks the rules), the
   template summary is used and the report says why.
@@ -61,7 +61,7 @@ The **Learn** tab has **Ask about this result**:
   and reviewed. The card's own text is shown, with its references, so these answers work offline and
   never change.
 - **Questions about this result** go to the language model with the result's facts, the closest cards as
-  background, and the same filter (at most three short sentences, no numbers, no verdict). Without a
+  background, and the same filter (at most three short sentences, no numbers, no conclusion about the video). Without a
   language model, they get a card only when one answers them closely.
-- **A question asking for a verdict** ("Is this fake?") always gets the fixed no-verdict answer and
+- **A question asking whether the video is real or fake** ("Is this fake?") always gets the fixed answer, which leaves that decision to you, and
   never reaches the language model.

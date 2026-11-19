@@ -8,7 +8,7 @@ hide:
 
 <div class="ms-hero__banner" markdown>
 
-# See what a deepfake detector sees.<br><span class="ms-hero__accent">And why one score is not proof.</span>
+# See what a deepfake detector sees.<br><span class="ms-hero__accent">And how far to trust it.</span>
 
 <p class="ms-hero__lede">
 <strong>MARScope</strong> (<code>marscope</code>) runs up to three trained video deepfake detectors on your own machine, shows the evidence behind each score, lets you test what each model relies on, and explains the result with fixed, cited notes. It never says a video is real or fake.
@@ -58,7 +58,7 @@ hide:
 
 -   [__FAQ :material-arrow-right:__](faq.md)
 
-    Privacy, why there is no verdict, which videos work, and limits.
+    Privacy, how to read a score, which videos work, and limits.
 
 </div>
 

@@ -78,7 +78,7 @@ fake), stored as 101 percentiles for each precision.
   score sits among the model's real test videos, in plain odds. The app draws it as a bar: the band is
   where real videos usually score (from the lowest 5% to the highest 5%), the dot is this video.
 - A **high fake score** is one above the model's usual range for real videos (its 95th percentile).
-  It is a description, not a threshold: nothing is decided by it.
+  It describes the score; nothing is decided by it.
 - Models are compared by that place, never by raw score. The result says whether the models agree,
   and how consistent the evidence is (*consistent*, *mixed* or *weak*).
 
@@ -132,7 +132,7 @@ own references. Settings are provisional until they are checked on the test sets
 The report is filled from a template: every number, note and reference comes from the result. A
 language model can write the connecting summary (optional, see [Reports and Ask](guides/report.md)).
 It receives the result in words, the notes without numbers and a plain description of your tests,
-never the video or frames. Sentences with a number or a verdict, and references the rules did not
+never the video or frames. Sentences with a number or a conclusion about the video, and references the rules did not
 attach, are removed; if anything fails, the template summary is used and the report says so.
 
 ## Ask
@@ -140,8 +140,8 @@ attach, are removed; if anything fails, the template summary is used and the rep
 General questions are answered from a small set of reviewed **knowledge cards**, written from our
 survey, the MARS paper and the MOZAIC benchmark, and found with a plain keyword search (no model, no
 network). Questions about a result go to the language model, if one is set up, with the result's facts
-and the closest cards; the same filter as the report applies. A question asking for a verdict always
-gets the fixed no-verdict answer.
+and the closest cards; the same filter as the report applies. A question asking whether the video is real or fake always
+gets the fixed answer that leaves the decision to you.
 
 ## Privacy
 

@@ -13,7 +13,9 @@
       chooseModels: "Choose models", overall: "Overall",
       strConsistent: "The models agree", leansFake: "they lean fake", leansReal: "they lean real", strMixed: "The models disagree", strWeak: "No clear lean",
       whyMixed: "Treat this as unclear: check where the video comes from.",
-      whyLeansFake: "Still not proof: check where the video comes from.", whyLeansReal: "A low score is not proof the video is real.",
+      whyLeansFake: "Check where the video comes from before drawing conclusions.", whyLeansReal: "A low score can still miss a fake, so check where the video comes from.",
+      whyMixed: "The result is unclear: check where the video comes from, and ask someone who can verify it.",
+      mapsNote: "Highlights show the areas a model relies on for its score.", noVerdictH: "How far one score goes",
       oneView: "One model ran: a single view, nothing to compare.",
       rVery: "Very unusual for a real video", rUnusual: "Unusual for a real video", rTypical: "Typical for a real video", rLow: "Low, even for a real video",
       rFewer: "fewer than 1 in 100 real videos score this high{on}", rOneIn: "about 1 in {n} real videos score this high{on}",
@@ -25,7 +27,7 @@
       posLine: "Higher than {r}% of real test videos and {f}% of fake ones",
       agreeAll: "Every model gives a probability of fake that is very unusual for a real video.",
       agreeNone: "No model gives a probability of fake that is unusual for a real video.",
-      disagreeList: "The models disagree: very unusual for a real video on {high}, not on {low}.",
+      disagreeList: "The models disagree: the score is very unusual for a real video on {high} and within the usual range on {low}.",
       whyWeak: "The scores sit in between, with no clear lean: check where the video comes from.",
       stepQueued: "Waiting for the GPU", stepLoading: "Loading {m}", stepRunClip: "Running {m} · clip {i} of about {n}",
       stepTesting: "Testing what {m} relies on", stepNotes: "Writing the notes", failed: "The analysis stopped: {e}",
@@ -72,7 +74,7 @@
       rpWriting: "Writing the summary with {m}…", rpFailed: "The report could not be built: {e}", rpDlFailed: "Failed",
       download: "Download", exportSession: "Session (JSON)", cardFrame: "Include the current frame (card, PDF, HTML)", frameCap: "Frame {n} (clip {c}), as the models saw it, before any edit.",
       sentNote: "The result in words, the notes and your tests. Never the video or its frames.",
-      cardFooter: "MARScope is a study tool. Scores are model outputs, not evidence, and there is no verdict.", policyV: "policy {v}",
+      cardFooter: "MARScope is an educational tool. Scores are model outputs and can be wrong.", policyV: "policy {v}",
       chipDisagree: "Why do the models disagree?", chipAgree: "What does it mean that the models agree?", chipTests: "What do the A1–A5 results say?",
       chipCertain: "What would make this more certain?", chipVerdict: "So is it real or fake?",
       askPh: "Ask a question about this result", askOffPh: "Needs a language model",
@@ -80,9 +82,9 @@
       askOffQ: "This question is about this result and needs a language model (set one up in .env). General questions and the suggested ones work without it.",
       chipDeepfake: "What is a deepfake?", whoCard: "From the MARScope knowledge cards, written from our research papers.",
       askTimeout: "The language model did not answer in time. Try again.", askFailed: "The language model could not be reached.",
-      askFiltered: "The answer broke the rules (a number or a verdict) and was removed. Try asking another way.",
-      whoFixed: "Fixed answer, built from this result.", whoLlm: "Written by {m} from the result. Sentences with numbers or a verdict are removed.",
-      whoRefused: "MARScope gives no verdict, so this is the fixed answer.",
+      askFiltered: "That answer was removed because it included a number or a conclusion about the video. Try asking another way.",
+      whoFixed: "Fixed answer, built from this result.", whoLlm: "Written by {m} from this result, with numbers and conclusions about the video removed.",
+      whoRefused: "MARScope leaves this decision to you. Here is what the scores do say.",
       curveDesc: "Fake likelihood for clip {c} as frames are hidden. {k} top-ranked: {a}% to {b}%. {k} random: {a}% to {r}%.",
     },
     fr: {
@@ -92,7 +94,9 @@
       chooseModels: "Choisir les modèles", overall: "En bref",
       strConsistent: "Les modèles sont d’accord", leansFake: "ils penchent vers le faux", leansReal: "ils penchent vers le vrai", strMixed: "Les modèles divergent", strWeak: "Pas de tendance nette",
       whyMixed: "Considérez ce résultat comme incertain : vérifiez d’où vient la vidéo.",
-      whyLeansFake: "Ce n’est toujours pas une preuve : vérifiez d’où vient la vidéo.", whyLeansReal: "Un score bas ne prouve pas que la vidéo est vraie.",
+      whyLeansFake: "Vérifiez d’où vient la vidéo avant de conclure.", whyLeansReal: "Un score bas peut manquer un faux : vérifiez d’où vient la vidéo.",
+      whyMixed: "Le résultat est incertain : vérifiez d’où vient la vidéo et demandez à quelqu’un qui peut la vérifier.",
+      mapsNote: "Le surlignage montre les zones sur lesquelles un modèle s’appuie pour son score.", noVerdictH: "Jusqu’où va un score",
       oneView: "Un seul modèle : une seule lecture, rien à comparer.",
       rVery: "Très inhabituel pour une vraie vidéo", rUnusual: "Inhabituel pour une vraie vidéo", rTypical: "Habituel pour une vraie vidéo", rLow: "Bas, même pour une vraie vidéo",
       rFewer: "moins de 1 vraie vidéo sur 100 obtient un score aussi haut{on}", rOneIn: "environ 1 vraie vidéo sur {n} obtient un score aussi haut{on}",
@@ -104,7 +108,7 @@
       posLine: "Plus haut que {r} % des vraies vidéos de test et {f} % des fausses",
       agreeAll: "Chaque modèle donne une probabilité de faux très inhabituelle pour une vraie vidéo.",
       agreeNone: "Aucun modèle ne donne une probabilité de faux inhabituelle pour une vraie vidéo.",
-      disagreeList: "Les modèles divergent : très inhabituel pour une vraie vidéo avec {high}, pas avec {low}.",
+      disagreeList: "Les modèles divergent : le score est très inhabituel pour une vraie vidéo avec {high} et dans la plage habituelle avec {low}.",
       whyWeak: "Les scores sont entre les deux, sans tendance nette : vérifiez d’où vient la vidéo.",
       stepQueued: "En attente du GPU", stepLoading: "Chargement de {m}", stepRunClip: "{m} · extrait {i} sur environ {n}",
       stepTesting: "Tests de ce sur quoi {m} s’appuie", stepNotes: "Rédaction des notes", failed: "L’analyse s’est arrêtée : {e}",
@@ -151,7 +155,7 @@
       rpWriting: "Rédaction du résumé avec {m}…", rpFailed: "Impossible de produire le rapport : {e}", rpDlFailed: "Échec",
       download: "Télécharger", exportSession: "Session (JSON)", cardFrame: "Inclure l’image en cours (fiche, PDF, HTML)", frameCap: "Image {n} (extrait {c}), telle que les modèles l’ont vue, avant toute modification.",
       sentNote: "Le résultat en mots, les notes et vos essais. Jamais la vidéo ni ses images.",
-      cardFooter: "MARScope est un outil d’étude. Les scores sont des sorties de modèles, pas des preuves, et il n’y a pas de verdict.", policyV: "politique {v}",
+      cardFooter: "MARScope est un outil pédagogique. Les scores sont des sorties de modèles et peuvent se tromper.", policyV: "politique {v}",
       chipDisagree: "Pourquoi les modèles divergent-ils?", chipAgree: "Que veut dire l’accord des modèles?", chipTests: "Que disent les résultats A1–A5?",
       chipCertain: "Qu’est-ce qui rendrait ce résultat plus sûr?", chipVerdict: "Alors, vrai ou faux?",
       askPh: "Posez une question sur ce résultat", askOffPh: "Demande un modèle de langage",
@@ -159,9 +163,9 @@
       askOffQ: "Cette question porte sur ce résultat et demande un modèle de langage (à configurer dans .env). Les questions générales et suggérées fonctionnent sans.",
       chipDeepfake: "Qu’est-ce qu’un hypertrucage?", whoCard: "Tiré des fiches de connaissances de MARScope, rédigées à partir de nos articles de recherche.",
       askTimeout: "Le modèle de langage n’a pas répondu à temps. Réessayez.", askFailed: "Le modèle de langage est injoignable.",
-      askFiltered: "La réponse enfreignait les règles (un nombre ou un verdict) et a été retirée. Reformulez la question.",
-      whoFixed: "Réponse fixe, construite à partir de ce résultat.", whoLlm: "Rédigé par {m} à partir du résultat. Les phrases avec des nombres ou un verdict sont retirées.",
-      whoRefused: "MARScope ne donne pas de verdict : voici la réponse fixe.",
+      askFiltered: "Cette réponse a été retirée car elle contenait un nombre ou une conclusion sur la vidéo. Reformulez la question.",
+      whoFixed: "Réponse fixe, construite à partir de ce résultat.", whoLlm: "Rédigé par {m} à partir de ce résultat, sans les nombres ni les conclusions sur la vidéo.",
+      whoRefused: "MARScope vous laisse cette décision. Voici ce que disent les scores.",
       curveDesc: "Probabilité de faux de l’extrait {c} à mesure qu’on cache des images. {k} mieux classées : {a} % à {b} %. {k} au hasard : {a} % à {r} %.",
     },
   });
@@ -513,7 +517,7 @@
     $("#an-h").textContent = s.name;
     $("#meta-text").textContent = `${t2s(s.duration)} · ${s.width}×${s.height}` + (S.R.video.rotation ? ` · ${T("rotatedNote", { d: S.R.video.rotation })}` : "");
     $("#cred-open").textContent = s.cred.status === "found" ? T("credFoundShort") : s.cred.status === "absent" ? T("credNoneShort") : T("credUnsupported");
-    $("#guess").hidden = !S.guessing; $("#models").hidden = S.guessing; $("#agree").hidden = S.guessing; $("#strength-row").hidden = S.guessing; $("#tabs").hidden = S.guessing; $("#trust-sum").hidden = S.guessing;
+    $("#guess").hidden = !S.guessing; $("#models").hidden = S.guessing; $("#reading").hidden = S.guessing; $("#agree").hidden = S.guessing; $("#tabs").hidden = S.guessing; $("#trust-sum").hidden = S.guessing;
     $("#open-report").disabled = S.guessing; $("#open-report").title = S.guessing ? T("guessFirstHint") : "";
     $$("#guess [data-guess]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.guess === S.guess)));
     selectTab(S.guessing ? null : currentTab);
@@ -657,17 +661,11 @@
         <span class="m-pos" aria-hidden="true"><b>${esc(rr.label)}</b>${LANG() === "fr" ? " :" : ":"} ${esc(rr.odds)}</span>
         ${s.device === "cpu" ? `<span class="m-note">${T("cpuNote")}${s.device_note ? ": " + esc(s.device_note) : ""}</span>` : ""}</button>`;
     }).join("");
-    const a = S.R.agreement, name = (id) => S.R.models[id].name;
-    const st = a.strength;
-    $("#strength").textContent = st === "consistent" ? T("strConsistent") + " · " + T(a.lean === "fake" ? "leansFake" : "leansReal") : T(st === "mixed" ? "strMixed" : "strWeak");
-    $("#strength").className = "val st-" + st;
-    let txt;
-    if (S.models.length === 1) txt = T("oneView");
-    else if (a.disagree) txt = T("disagreeList", { high: a.high_fake.map(name).join(", "), low: a.models.filter((id) => !a.high_fake.includes(id)).map(name).join(", ") });
-    else txt = a.high_fake.length ? T("agreeAll") : T("agreeNone");
-    txt += " " + (st === "mixed" ? T("whyMixed") : st === "weak" ? T("whyWeak") : a.lean === "fake" ? T("whyLeansFake") : T("whyLeansReal"));
-    if (S.guess) txt += " " + T("youSaid", { g: T({ real: "real", fake: "fake", unsure: "notSure" }[S.guess]) });
-    $("#agree").textContent = txt.trim();
+    /* The reading: which way the detectors lean and how confident that is (rule: marscope.explain.policy.assess). */
+    const r = S.R.reading;
+    $("#reading").className = "reading" + (r ? " lean-" + r.lean : "");
+    $("#reading").innerHTML = r ? `<div class="rd-top"><b class="rd-lean">${esc(r.headline)}</b><span class="rd-conf c-${r.confidence}">${esc(r.confidence_label)}</span></div><p class="rd-why">${esc(r.reasons.join(" "))} ${esc(r.action)}</p>` : "";
+    $("#agree").textContent = S.guess ? T("youSaid", { g: T({ real: "real", fake: "fake", unsure: "notSure" }[S.guess]) }) : "";
     renderTrustSum();
   }
   $("#models").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (!b || +b.dataset.f === S.focus) return; S.focus = +b.dataset.f; refresh(); prefetch(); $(`[data-f="${S.focus}"]`).focus(); });
@@ -1115,9 +1113,9 @@
     if (!S.R) return;
     try {
       const out = await api(`jobs/${S.job}/notes`, { jurisdiction: S.jur, language: LANG() });
-      S.R.notes = out.notes;
+      S.R.notes = out.notes; if (out.reading) S.R.reading = out.reading;
       (out.references || []).forEach((r) => { if (!refByKey(r.key)) S.refs.push(r); });
-      renderNotes(); renderTrustSum();
+      renderNotes(); renderModels();
     } catch (_) { /* keep the current notes */ }
   }
   document.addEventListener("click", (e) => { const b = e.target.closest("[data-jur]"); if (!b || !S.R) return; S.jur = b.dataset.jur; reloadNotes().then(() => { const x = $(`[data-jur="${S.jur}"]`); if (x) x.focus(); }); });
@@ -1274,7 +1272,12 @@
       x.fillStyle = SEC; x.font = F(500, 13); x.fillText(T("clipN", { n: S.clip + 1 }) + " · " + T("frameN", { n: srcFrame(S.clip, S.frame) + 1 }), fx, fy + fh + 22);
       rx = 700;
     }
-    const rw = W - 40 - rx; let y = 164;
+    const rw = W - 40 - rx, rd = S.R.reading; let y = 164;
+    if (rd) {  /* the reading first: what an executive reads before the numbers */
+      x.fillStyle = INK; x.font = F(700, 20); x.fillText(fit(x, `${rd.headline} · ${rd.confidence_label}`, rw), rx, y);
+      x.fillStyle = SEC; x.font = F(500, 13); wrap(x, rd.reasons.join(" "), rx, y + 22, rw, 18, 2);
+      y += 66;
+    }
     x.fillStyle = INK; x.font = F(700, 16); x.fillText(T("likelihood"), rx, y);
     S.models.forEach((m) => {
       const s = S.R.models[m.id]; y += 18;
@@ -1289,8 +1292,6 @@
       x.fillStyle = SEC; x.font = F(500, 11); x.fillText(T("realUsually", { a: pct(lo), b: pct(hi) }), rx, y + 80);
       y += 86;
     });
-    x.fillStyle = INK; x.font = F(700, 15); x.fillText(fit(x, T("overall") + ": " + $("#strength").textContent, rw), rx, y + 16);
-    x.fillStyle = SEC; x.font = F(500, 13); wrap(x, $("#agree").textContent, rx, y + 38, rw, 18, 2);
     const chips = [...$("#trust-sum").querySelectorAll(".pill")].map((p) => p.textContent), ay = 572; let ax = 40;
     x.font = F(700, 13); x.fillStyle = INK; x.fillText(T("kTrust"), 40, ay - 12);
     (chips.length ? chips : [T("noFlags")]).forEach((label) => { x.font = F(600, 12); const w = x.measureText(label).width + 20; if (ax + w > W - 40) return; x.fillStyle = "#f5f5f7"; rr(x, ax, ay, w, 26, 13); x.fill(); x.fillStyle = INK; x.fillText(label, ax + 10, ay + 17); ax += w + 8; });

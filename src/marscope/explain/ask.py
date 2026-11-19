@@ -15,7 +15,7 @@ from typing import Literal
 
 from marscope.analysis.ranges import rarity
 from marscope.explain.knowledge import MATCH, Card, load_cards, search
-from marscope.explain.policy import references
+from marscope.explain.policy import assess, references
 from marscope.explain.report import (
     FRENCH,
     PLAIN,
@@ -91,9 +91,9 @@ TEXT = {
         "all_high": "They agree: every model gives a probability of fake that is very unusual for a real video.",
         "none_high": "They agree: no model gives a probability of fake that is unusual for a real video.",
         "kinds": "MARS looks at the whole frame over time, while GenD and DFD-HR look at frames one by one{c}.",
-        "why_split": "Disagreement is a reason to check where the video comes from, not to pick a side{c}.",
-        "why_all": "Agreement is still not proof: models trained on the same videos can share blind spots{c}.",
-        "why_none": "That is not proof either: a new generator can fool all of them{c}.",
+        "why_split": "When detectors disagree, the next step is to check where the video comes from{c}.",
+        "why_all": "Even so, models trained on the same videos can share blind spots{c}.",
+        "why_none": "A new generator can still fool all of them{c}.",
         "tests_none": "No test ran on this video: the face outline test needs a face, and the others need a "
         "high score to test.",
         "tests_line": "{t}: {s}.",
@@ -102,16 +102,16 @@ TEXT = {
         "risk": "This video is also unlike the videos the models learned from.",
         "cred_found": "First, check where the video comes from: this file records who made it ({s}){c}.",
         "cred_none": "First, check where the video comes from: this file has no record of who made it, which is "
-        "common and proves nothing{c}.",
+        "true of most videos{c}.",
         "cred_other": "First, check where the video comes from: the file's record of who made it could not be read{c}.",
         "certain_agree": "Then look for models that agree and keep their score after edits; here {state}{c}.",
         "st_split": "the models disagree",
         "st_all": "all models agree",
         "st_none": "no model finds anything unusual",
         "st_breaks": ", but the score breaks when {t}",
-        "verdict": "MARScope does not say whether a video is real or fake: a score is a model output, not proof{c}.",
+        "verdict": "The final decision is yours: the scores are model outputs and can be wrong{c}.",
         "verdict_scores": "Here: {r}.",
-        "verdict_end": "Check where the video comes from{c}; this tool is for learning, not for judging evidence{d}.",
+        "verdict_end": "Check where the video comes from{c}; MARScope is made for learning how detectors work{d}.",
         "and": " and ",
     },
     "fr": {
@@ -125,10 +125,9 @@ TEXT = {
         "none_high": "Ils sont d’accord : aucun modèle ne donne une probabilité de faux inhabituelle pour une vraie "
         "vidéo.",
         "kinds": "MARS regarde l’image entière dans le temps, GenD et DFD-HR regardent chaque image séparément{c}.",
-        "why_split": "Un désaccord invite à vérifier d’où vient la vidéo, pas à choisir un camp{c}.",
-        "why_all": "L’accord n’est pas une preuve : des modèles entraînés sur les mêmes vidéos peuvent partager des "
-        "angles morts{c}.",
-        "why_none": "Ce n’est pas une preuve non plus : un nouveau générateur peut tous les tromper{c}.",
+        "why_split": "Quand les détecteurs divergent, l’étape suivante est de vérifier d’où vient la vidéo{c}.",
+        "why_all": "Même ainsi, des modèles entraînés sur les mêmes vidéos peuvent partager des angles morts{c}.",
+        "why_none": "Un nouveau générateur peut tout de même tous les tromper{c}.",
         "tests_none": "Aucun essai n’a tourné sur cette vidéo : l’essai du contour demande un visage, les autres un "
         "score élevé à tester.",
         "tests_line": "{t} : {s}.",
@@ -137,8 +136,8 @@ TEXT = {
         "partie retirée{c}.",
         "risk": "Cette vidéo ne ressemble pas non plus aux vidéos sur lesquelles les modèles ont appris.",
         "cred_found": "D’abord, vérifiez d’où vient la vidéo : ce fichier indique qui l’a créé ({s}){c}.",
-        "cred_none": "D’abord, vérifiez d’où vient la vidéo : ce fichier n’indique pas qui l’a créé, ce qui est "
-        "courant et ne prouve rien{c}.",
+        "cred_none": "D’abord, vérifiez d’où vient la vidéo : ce fichier n’indique pas qui l’a créé, comme la "
+        "plupart des vidéos{c}.",
         "cred_other": "D’abord, vérifiez d’où vient la vidéo : l’indication de qui a créé le fichier est illisible{c}.",
         "certain_agree": "Cherchez ensuite des modèles d’accord qui gardent leur score quand la vidéo est modifiée; "
         "ici, {state}{c}.",
@@ -146,11 +145,10 @@ TEXT = {
         "st_all": "tous les modèles sont d’accord",
         "st_none": "aucun modèle ne trouve rien d’inhabituel",
         "st_breaks": ", mais le score casse quand {t}",
-        "verdict": "MARScope ne dit pas si une vidéo est vraie ou fausse : un score est une sortie de modèle, pas une "
-        "preuve{c}.",
+        "verdict": "La décision finale vous revient : les scores sont des sorties de modèles et peuvent se tromper{c}.",
         "verdict_scores": "Ici : {r}.",
-        "verdict_end": "Vérifiez d’où vient la vidéo{c}; cet outil sert à apprendre, pas à juger des éléments de "
-        "preuve{d}.",
+        "verdict_end": "Vérifiez d’où vient la vidéo{c}; MARScope sert à comprendre le fonctionnement des "
+        "détecteurs{d}.",
         "and": " et ",
     },
 }
@@ -368,8 +366,10 @@ def _verdict(result: VideoResult, lang: str, cite: Cite) -> str:
         f"{s.name} {pct(s.fake)}{sep}%, " + rarity(s.context.real_rank, "", lang)[0].lower()
         for s in result.models.values()
     )
+    reading = assess(result, lang)
     return " ".join(
         [
+            f"{reading.headline}, {reading.confidence_label.lower()}: {' '.join(reading.reasons)}",
             _t(lang, "verdict", c=cite("survey")),
             _t(lang, "verdict_scores", r=scores),
             _t(lang, "verdict_end", c=cite("c2pa"), d=cite("eu-ai-act-annex3")),

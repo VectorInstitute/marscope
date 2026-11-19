@@ -119,6 +119,23 @@ class Agreement(_Model):
     lean: Literal["fake", "real"] | None = Field(default=None, description="Direction when consistent")
 
 
+class Reading(_Model):
+    """What the detectors' scores point to, and how confident that reading is.
+
+    It describes the detectors' output by a fixed rule (``explain.policy.assess``):
+    which way the scores lean against real videos, whether the models agree, whether
+    the tests hold, and whether the video is like the training data. It never changes
+    a score.
+    """
+
+    lean: Literal["fake", "real", "unclear"]
+    confidence: Literal["high", "medium", "low"]
+    headline: str = Field(description='For example "Detectors lean fake"')
+    confidence_label: str = Field(description='For example "High confidence"')
+    reasons: list[str] = Field(default_factory=list, description="One plain sentence per reason")
+    action: str = Field(description="The next step for the reader")
+
+
 class PolicyNote(_Model):
     """One note from the policy rules. Notes explain; they never change a score."""
 
@@ -181,6 +198,7 @@ class VideoResult(_Model):
     models: dict[str, ModelScore]
     agreement: Agreement
     notes: list[PolicyNote] = Field(default_factory=list)
+    reading: Reading | None = None
     jurisdiction: str | None = None
     versions: Versions
 

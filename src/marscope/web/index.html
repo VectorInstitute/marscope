@@ -49,7 +49,7 @@
     </div>
 
     <div class="hero-body-card">
-      <p class="subline" data-i18n="subline">MARScope runs trained deepfake detectors on your video, shows what each one relies on, and explains why one score is not proof.</p>
+      <p class="subline" data-i18n="subline">MARScope runs trained deepfake detectors on your video, shows what each one relies on, and explains how far to trust each score.</p>
       <div class="actions">
         <a class="cta-primary" href="app.html"><span data-i18n="openApp">Open the app</span> <span class="arrow" aria-hidden="true">→</span></a>
         <a class="cta-text" href="https://vectorinstitute.github.io/marscope/" target="_blank" rel="noopener noreferrer" data-i18n="readDocs">Read the docs</a>
@@ -96,24 +96,24 @@
   window.MS.addStrings({
     en: {
       eyebrowA: "Open source", h1: "See what a", h2: "detector", h3: "sees.",
-      subline: "MARScope runs trained deepfake detectors on your video, shows what each one relies on, and explains why one score is not proof.",
+      subline: "MARScope runs trained deepfake detectors on your video, shows what each one relies on, and explains how far to trust each score.",
       readDocs: "Read the docs", trust: "Runs on your machine. The video never leaves it.", licence: "Licence",
       proofA: "A frame", proofB: "What MARS relies on",
-      proofText: "A generated video from GenVideo (Crafter). MARS gives it a <b>64%</b> probability of fake: very unusual for a real video, since fewer than 1 in 100 real videos score this high. The highlighted areas are what raised its score. Not proof: a place to look.",
+      proofText: "A generated video from GenVideo (Crafter). MARS gives it a <b>64%</b> probability of fake: very unusual for a real video, since fewer than 1 in 100 real videos score this high. The highlighted areas are what raised its score: a good place to look closer.",
       cap1: "Score", cap2: "Evidence", cap3: "Explain", faqTitle: "Questions",
     },
     fr: {
       eyebrowA: "Code source ouvert", h1: "Voir ce que voit", h2: "un détecteur.", h3: "",
-      subline: "MARScope applique des détecteurs d’hypertrucages entraînés à votre vidéo, montre sur quoi chacun s’appuie et explique pourquoi un score n’est pas une preuve.",
+      subline: "MARScope applique des détecteurs d’hypertrucages entraînés à votre vidéo, montre sur quoi chacun s’appuie et explique jusqu’où se fier à chaque score.",
       readDocs: "Lire la documentation", trust: "Tourne sur votre machine. La vidéo n’en sort jamais.", licence: "Licence",
       proofA: "Une image", proofB: "Ce sur quoi MARS s’appuie",
-      proofText: "Une vidéo générée de GenVideo (Crafter). MARS lui donne une probabilité de faux de <b>64 %</b> : très inhabituel pour une vraie vidéo, car moins de 1 vraie vidéo sur 100 obtient un score aussi haut. Les zones surlignées sont ce qui a fait monter son score. Pas une preuve : un endroit où regarder.",
+      proofText: "Une vidéo générée de GenVideo (Crafter). MARS lui donne une probabilité de faux de <b>64 %</b> : très inhabituel pour une vraie vidéo, car moins de 1 vraie vidéo sur 100 obtient un score aussi haut. Les zones surlignées sont ce qui a fait monter son score : un bon endroit où regarder de plus près.",
       cap1: "Score", cap2: "Indices", cap3: "Explication", faqTitle: "Questions",
     },
   });
   const FAQ = [
-    [{ en: "Is this a deepfake checker?", fr: "Est-ce un vérificateur d’hypertrucages?" }, { en: "No. It is a study tool. It shows how three trained detectors score a video, what each one relies on, and why their scores are not proof.", fr: "Non. C’est un outil d’étude. Il montre comment trois détecteurs entraînés notent une vidéo, sur quoi chacun s’appuie et pourquoi leurs scores ne sont pas une preuve." }],
-    [{ en: "Why is there no “real” or “fake” verdict?", fr: "Pourquoi pas de verdict « vrai » ou « faux »?" }, { en: "Scores are not calibrated, detectors disagree, and everyday videos differ from the test videos the models were checked on. A verdict would invite using the score as evidence.", fr: "Les scores ne sont pas calibrés, les détecteurs divergent, et les vidéos du quotidien diffèrent des vidéos de test sur lesquelles les modèles ont été testés. Un verdict inviterait à s’en servir comme preuve." }],
+    [{ en: "Is this a deepfake checker?", fr: "Est-ce un vérificateur d’hypertrucages?" }, { en: "It is a study tool. It shows how three trained detectors score a video, what each one relies on, and how far to trust their scores.", fr: "Non. C’est un outil d’étude. Il montre comment trois détecteurs entraînés notent une vidéo, sur quoi chacun s’appuie et pourquoi leurs scores ne sont pas une preuve." }],
+    [{ en: "Why is there no “real” or “fake” verdict?", fr: "Pourquoi pas de verdict « vrai » ou « faux »?" }, { en: "Scores are not calibrated, detectors disagree, and everyday videos differ from the test videos the models were checked on. So MARScope shows the evidence and leaves the decision to people.", fr: "Les scores ne sont pas calibrés, les détecteurs divergent, et les vidéos du quotidien diffèrent des vidéos de test sur lesquelles les modèles ont été testés. Un verdict inviterait à s’en servir comme preuve." }],
     [{ en: "Does the highlighted area show where the fake is?", fr: "La zone surlignée montre-t-elle où est le faux?" }, { en: "No. It shows what a model relied on, which may not be the edited region. You can test it: hide those areas and compare with hiding random ones.", fr: "Non. Elle montre ce sur quoi un modèle s’est appuyé, qui n’est pas forcément la zone modifiée. Vous pouvez le vérifier : cachez ces zones et comparez avec des zones au hasard." }],
     [{ en: "Is my video uploaded anywhere?", fr: "Ma vidéo est-elle envoyée quelque part?" }, { en: "No. MARScope runs on your machine and deletes the video when you close the result. Only a text summary goes to a language model, and only if you set one up.", fr: "Non. MARScope tourne sur votre machine et supprime la vidéo quand vous fermez le résultat. Seul un résumé textuel part vers un modèle de langage, et seulement si vous en configurez un." }],
     [{ en: "Which videos does it work on?", fr: "Sur quelles vidéos fonctionne-t-il?" }, { en: "Up to 2 minutes and 1080p. The models were trained mostly on face videos, so the notes tell you when a video is unlike their training data.", fr: "Jusqu’à 2 minutes et 1080p. Les modèles ont surtout été entraînés sur des vidéos de visages; les notes signalent quand une vidéo en diffère." }],

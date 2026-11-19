@@ -172,7 +172,7 @@ def test_verdict_questions_never_reach_the_llm(result: VideoResult, monkeypatch:
     monkeypatch.setattr(ask_module, "complete", boom)
     answer = ask_module.ask(result, "So is this video fake or not?")
     assert answer.refused and answer.source == "fixed"
-    assert "does not say whether a video is real or fake" in answer.text
+    assert answer.text.startswith("No clear lean, low confidence") and "The final decision is yours" in answer.text
     assert asks_for_verdict("Est-ce que c'est un hypertrucage ?")
     assert not asks_for_verdict("What does A4 breaks mean?")
 
@@ -223,6 +223,8 @@ def test_llm_answers_are_capped(result: VideoResult, monkeypatch: pytest.MonkeyP
         "This suggests the content may be synthetic.",
         "The clip looks manipulated.",
         "La vidéo est probablement truquée.",
+        "You can trust these findings as strong evidence.",
+        "This confirms the result.",
         "It is likely a deepfake.",
     ],
 )

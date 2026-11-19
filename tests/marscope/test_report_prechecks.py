@@ -95,7 +95,7 @@ def test_cli_summary_and_parser(make_result: Make) -> None:
     text = format_summary(result.model_dump(mode="json"))
     assert "probability of fake 90%" in text
     assert "Very unusual for a real video: about 1 in 100 real videos score this high on MARS" in text
-    assert "No verdict" in text
+    assert "Scores are model outputs and can be wrong" in text
     args = build_parser().parse_args(["--video", "x.mp4", "--models", "mars", "--json"])
     assert args.json and args.models == "mars" and args.precision == "auto"
     assert build_parser().parse_args(["--serve", "--precision", "fp32"]).precision == "fp32"
@@ -142,3 +142,17 @@ def test_damaged_files_get_a_plain_message(tmp_path: Path, capsys: pytest.Captur
     junk.write_bytes(b"\x00\x00\x00\x20ftypisom" + b"\x00" * 400)
     assert main(["--video", str(junk), "--no-faces"]) == 2
     assert "damaged or incomplete" in capsys.readouterr().err
+
+
+def test_env_file_is_found_where_marscope_runs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import dotenv  # noqa: PLC0415
+
+    from marscope.explain.report import llm_settings  # noqa: PLC0415
+
+    monkeypatch.setattr("dotenv.load_dotenv", dotenv.main.load_dotenv)  # the real loader, for this test only
+    (tmp_path / ".env").write_text("MARSCOPE_LLM_BASE_URL=https://llm.example.org/v1\nMARSCOPE_LLM_API_KEY=k\n")
+    monkeypatch.chdir(tmp_path)
+    settings = llm_settings()
+    assert settings is not None and settings["base_url"] == "https://llm.example.org/v1"
+    for key in ("MARSCOPE_LLM_BASE_URL", "MARSCOPE_LLM_API_KEY"):
+        monkeypatch.delenv(key, raising=False)

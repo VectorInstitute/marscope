@@ -8,7 +8,7 @@
 [![codecov](https://codecov.io/github/VectorInstitute/marscope/graph/badge.svg?token=83MYFZ3UPA)](https://codecov.io/github/VectorInstitute/marscope)
 ![GitHub License](https://img.shields.io/github/license/VectorInstitute/marscope)
 
-**See what a video deepfake detector sees, and why one score is not proof.**
+**See what a video deepfake detector sees, and how far to trust it.**
 
 MARScope runs up to three trained video deepfake detectors (MARS, GenD and DFD-HR) on a video, on
 your own machine. It shows the evidence behind each score, lets you test what each model relies on,
@@ -34,7 +34,7 @@ on → notes (trust, provenance, laws that may apply) → optional report.
   the face outline is hidden (A1), when the video is shared many times (A4), when fine pixel detail
   is removed (A5)? A2 and A3 come from the model's results on new generators and from checks on the
   video.
-- **Notes, not verdicts.** Deterministic rules write the notes from the measured values, with
+- **Notes with references.** Deterministic rules write the notes from the measured values, with
   references. Rules never change a score.
 - **Report.** Markdown, HTML or PDF, with what you tried in the session. A language model can write
   the summary prose (optional); every number and reference comes from the template.
@@ -191,7 +191,7 @@ MARSCOPE_LLM_MODEL=model-name
 ```
 
 Only the structured result, the notes and a plain description of your tests are sent, never the
-video or frames. Sentences with numbers or a verdict, and references the rules did not attach, are
+video or frames. Sentences with numbers or a conclusion about the video, and references the rules did not attach, are
 removed; if the call fails, the template is used.
 
 **Ask** (in the Learn tab) answers general questions ("What is a deepfake?", "What is C2PA?") from a
@@ -200,8 +200,8 @@ Questions about a result use the language model, with the same rules as the repo
 
 ## Scope and limits
 
-- **Not evidence.** Scores are model outputs, not findings, and can be wrong. Do not use them for
-  legal, forensic, journalistic or employment decisions, or to make claims about a person.
+- **For learning.** Scores are model outputs and can be wrong. Legal, forensic, journalistic and
+  employment decisions, and claims about a person, need qualified experts and other evidence.
 - The models were trained on face videos (FF++) and rendered game footage (GTA-V). Scores on videos
   unlike that (no faces, new generators, heavy compression, very short clips) are less reliable,
   and the notes say so.

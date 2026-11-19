@@ -5,7 +5,7 @@ from collections.abc import Callable
 import pytest
 
 from marscope.explain.policy import apply_policy, context_applies, load_policy, references
-from marscope.schema import Credentials, FaceSummary, PolicyNote, VideoResult
+from marscope.schema import Credentials, FaceSummary, PolicyNote, Reading, VideoResult
 
 
 Make = Callable[..., VideoResult]
@@ -23,7 +23,7 @@ def rules(result: VideoResult, **kwargs: object) -> list[str]:
 def test_footer_always_and_last(make_result: Make) -> None:
     notes = apply_policy(make_result())
     assert notes[-1].rule == "footer"
-    assert "not findings" in notes[-1].text and "no verdict" in notes[-1].detail
+    assert "model outputs" in notes[-1].text and "leaves the decision to people" in notes[-1].detail
 
 
 def test_rules_never_change_scores(make_result: Make) -> None:
@@ -196,3 +196,53 @@ def test_no_verdict_words_in_notes() -> None:
 def test_references_lookup_dedupes() -> None:
     out = references(["mars", "survey", "mars", "unknown"])
     assert [r["key"] for r in out] == ["mars", "survey"]
+
+
+def _reading(make_result: Make, scores: dict[str, tuple[float, bool]], **kwargs: object) -> Reading:
+    from marscope.explain.policy import assess  # noqa: PLC0415
+
+    result = make_result(scores, **kwargs)
+    result.notes = apply_policy(result)
+    return assess(result)
+
+
+def test_reading_leans_fake_with_high_confidence_when_all_models_agree(make_result: Make) -> None:
+    r = _reading(make_result, {"mars": (0.9, True), "gend": (0.9, True)}, measures={"mars": A1_HOLDS})
+    assert (r.lean, r.confidence) == ("fake", "high")
+    assert r.headline == "Detectors lean fake" and r.confidence_label == "High confidence"
+    assert r.reasons[0] == "Every model scores this far above what real videos usually get."
+    assert "hold under the tests" in r.reasons[1] and r.action.startswith("Check where the video comes from")
+
+
+def test_reading_names_the_single_model_and_caps_confidence(make_result: Make) -> None:
+    r = _reading(make_result, {"mars": (0.9, True)})
+    assert (r.lean, r.confidence, r.headline) == ("fake", "medium", "MARS leans fake")
+    assert r.reasons[-1] == "Only one model ran, so there is nothing to compare against."
+    assert not any("agree" in x for x in r.reasons)
+
+
+def test_reading_drops_a_level_when_a_test_breaks(make_result: Make) -> None:
+    r = _reading(make_result, {"mars": (0.9, True), "gend": (0.9, True)}, measures={"mars": A1_BREAKS})
+    assert (r.lean, r.confidence) == ("fake", "medium")
+    assert any("the face outline is hidden" in x for x in r.reasons)
+
+
+def test_reading_real_is_never_high_and_unlike_training_lowers_it(make_result: Make) -> None:
+    r = _reading(make_result, {"mars": (0.1, False), "gend": (0.1, False)})
+    assert (r.lean, r.confidence) == ("real", "medium") and "new generators" in r.reasons[1]
+    r = _reading(make_result, {"mars": (0.1, False), "gend": (0.1, False)}, scope=["short"])
+    assert (r.lean, r.confidence) == ("real", "low")
+
+
+def test_reading_is_unclear_when_models_disagree(make_result: Make) -> None:
+    r = _reading(make_result, {"mars": (0.9, True), "gend": (0.3, False)})
+    assert (r.lean, r.confidence, r.headline) == ("unclear", "low", "No clear lean")
+    assert r.reasons[0].startswith("The models disagree: on MARS the score is far above real videos")
+
+
+def test_reading_in_french(make_result: Make) -> None:
+    from marscope.explain.policy import assess  # noqa: PLC0415
+
+    result = make_result({"mars": (0.9, True)})
+    result.notes = apply_policy(result, language="fr")
+    assert assess(result, "fr").headline == "MARS penche vers le faux"

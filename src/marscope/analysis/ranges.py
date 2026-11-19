@@ -150,6 +150,9 @@ def rank(score: float, percentiles: np.ndarray) -> float:
     return float(lo + frac)
 
 
+REAL_LEAN_RANK = 80.0  # below this real rank on every model, the scores lean real
+
+
 RARITY = {
     "en": {
         "very": "Very unusual for a real video",

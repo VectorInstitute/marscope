@@ -3,7 +3,7 @@
 MARScope runs trained video deepfake detectors on a video and helps you read what they say. Each
 score is placed next to the scores the same model gives real and fake test videos, the evidence
 behind it is shown, and you can test what the model relies on. Fixed rules then write notes on how
-far to trust the result, with references. There is never a verdict.
+far to trust the result, with references. The decision about the video stays with you.
 
 ---
 
@@ -82,9 +82,10 @@ do.
 
 ## What it does not do
 
-- **No verdict.** MARScope never says a video is real or fake, and sets no threshold on a score.
-- **Not evidence.** Scores are model outputs. Do not use them for legal, forensic, journalistic or
-  employment decisions, or to make claims about a person.
+- **The decision stays with you.** MARScope reports what each detector measured, with no threshold on
+  a score.
+- **For learning.** Scores are model outputs and can be wrong. Legal, forensic, journalistic and
+  employment decisions, and claims about a person, need qualified experts and other evidence.
 - **Video only.** No audio, no images.
 - **Not everything.** The models were trained on face videos (FF++) and rendered game footage
   (GTA-V). On videos unlike that, scores are less reliable, and the notes say so.

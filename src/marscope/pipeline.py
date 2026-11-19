@@ -16,8 +16,8 @@ import numpy as np
 from PIL import Image
 
 from marscope.analysis import evidence as ev
-from marscope.analysis.ranges import rank
-from marscope.explain.policy import apply_policy, load_policy, policy_version
+from marscope.analysis.ranges import REAL_LEAN_RANK, rank
+from marscope.explain.policy import apply_policy, assess, load_policy, policy_version
 from marscope.models.registry import get_spec, parse_models
 from marscope.models.runner import Runner, cuda_available, download, peak_vram_gb
 from marscope.models.scheduler import free_vram_gb, plan_waves
@@ -83,9 +83,6 @@ def _editor(edits: Edits) -> Callable[[int, np.ndarray], np.ndarray]:
         return apply_edits(rgb, edits, seed=index)
 
     return edit
-
-
-REAL_LEAN_RANK = 80.0  # below this real rank on every model, the evidence leans real
 
 
 def package_version() -> str:
@@ -424,6 +421,7 @@ class MARScope:
         )
         emit({"type": "stage", "stage": "policy"})
         result.notes = apply_policy(result, jurisdiction, language)
+        result.reading = assess(result, language)
         result.jurisdiction = jurisdiction
         for m in model_ids:
             # Percentiles used (matching the precision), to rank re-scored values.

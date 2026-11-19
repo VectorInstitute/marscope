@@ -26,7 +26,7 @@ from typing import Any, Literal
 
 from marscope.analysis.evidence import segments
 from marscope.analysis.ranges import rarity
-from marscope.explain.policy import references
+from marscope.explain.policy import assess, references
 from marscope.schema import Experiment, PolicyNote, VideoResult
 
 
@@ -37,18 +37,17 @@ LlmStatus = Literal["used", "off", "disabled", "timeout", "failed", "filtered"]
 
 DISCLAIMER = {
     "en": (
-        "MARScope is a study tool for learning how video deepfake detectors work. Its scores are model outputs, "
-        "not findings: they can be wrong, and they are not evidence that a video is real or fake. Do not use them "
-        "for legal, forensic, journalistic or employment decisions, or to make claims about a person. Policy notes "
-        "are educational and are not legal advice. Provided as is under the Apache 2.0 licence, without warranty "
-        "of any kind."
+        "MARScope is an educational tool for learning how video deepfake detectors work. Its scores are model "
+        "outputs and can be wrong. Legal, forensic, journalistic and employment decisions, and claims about a "
+        "person, need qualified experts and other evidence. Policy notes are general information, without legal "
+        "advice. Provided as is under the Apache 2.0 licence, without warranty of any kind."
     ),
     "fr": (
-        "MARScope est un outil d’étude pour comprendre le fonctionnement des détecteurs d’hypertrucages vidéo. Ses "
-        "scores sont des sorties de modèles, pas des constats : ils peuvent se tromper et ne prouvent pas qu’une "
-        "vidéo est vraie ou fausse. Ne les utilisez pas pour des décisions juridiques, judiciaires, journalistiques "
-        "ou d’emploi, ni pour affirmer quoi que ce soit sur une personne. Les notes de politique sont éducatives et "
-        "ne constituent pas un avis juridique. Fourni tel quel sous licence Apache 2.0, sans garantie d’aucune sorte."
+        "MARScope est un outil pédagogique pour comprendre le fonctionnement des détecteurs d’hypertrucages vidéo. "
+        "Ses scores sont des sorties de modèles et peuvent se tromper. Les décisions juridiques, judiciaires, "
+        "journalistiques ou d’emploi, et toute affirmation sur une personne, demandent des experts qualifiés et "
+        "d’autres éléments. Les notes de politique sont de l’information générale, sans avis juridique. Fourni tel "
+        "quel sous licence Apache 2.0, sans garantie d’aucune sorte."
     ),
 }
 VERDICT = re.compile(
@@ -77,6 +76,14 @@ INFERENCE = re.compile(
     re.IGNORECASE,
 )
 CITATION = re.compile(r"\[([a-z0-9-]+)\]")
+# Claims that a result is evidence or can be trusted: dropped like a verdict.
+EVIDENCE_CLAIM = re.compile(
+    r"\b(strong|clear|conclusive|definitive|solid|reliable|firm|hard)\s+(evidence|proof|sign|indication)\b"
+    r"|\b(you|we|one)\s+(can|could|may|should)\s+(fully\s+)?(trust|rely on|believe)\b"
+    r"|\b(proves?|proven|confirms?|confirmed|establish(es|ed)?)\b"
+    r"|\b(preuve|preuves)\s+(solide|claire|forte|concluante)s?\b|\bprouve\w*\b|\bconfirme\w*\b",
+    re.IGNORECASE,
+)
 # A sentence about the user's tests ("No user tests were run"), dropped when none ran.
 NO_TESTS = re.compile(
     r"\b(user|user's|your|additional|further|no)\b[^.]*\btests?\b(?!\s+videos?)|\btests?\b[^.]*\b(were|was)\s+(not\s+)?run\b"
@@ -104,7 +111,8 @@ PLAIN = """- Write for a busy executive with no technical background: everyday w
 SYSTEM_PROMPT = (
     """You write the summary at the top of a report from a video deepfake detection toolkit.
 - At most three short sentences and sixty words, no headings or lists: first what the models found,
-  then what the user's tests showed, then why one score is not proof. If "tests_the_user_ran" is empty,
+  then what the user's tests showed, then what limits the result (scores can be wrong, models can
+  disagree, sharing can change a score). If "tests_the_user_ran" is empty,
   do not mention tests at all.
 - A good first sentence: "All three models give a probability of fake that is very unusual for a real
   video."
@@ -117,7 +125,7 @@ FRENCH = "\n- Write in Canadian French."
 TEXT: dict[str, dict[str, str]] = {
     "en": {
         "title": "MARScope report: {name}",
-        "tagline": "A study tool. Scores are model outputs, not evidence.",
+        "tagline": "An educational tool. Scores are model outputs and can be wrong.",
         "summary": "Summary",
         "scores": "Scores in context",
         "th_model": "Model",
@@ -152,7 +160,7 @@ TEXT: dict[str, dict[str, str]] = {
         "s_some": "{high} gave a probability of fake that is very unusual for a real video; the others did not.",
         "s_tried_one": "One test you ran in the app is listed under What you tried.",
         "s_tried_many": "The {n} tests you ran in the app are listed under What you tried.",
-        "s_end": "A score is a model output, not proof; the notes below say how far to trust each model.",
+        "s_end": "The notes below say how far to trust each model.",
         "and": " and ",
         "x_change": "{m} {a}% to {b}%",
         "x_frames": "Clip {c}: with {n} frames hidden (frames {frames}), the scores moved: {changes}.",
@@ -173,7 +181,7 @@ TEXT: dict[str, dict[str, str]] = {
     },
     "fr": {
         "title": "Rapport MARScope : {name}",
-        "tagline": "Un outil d’étude. Les scores sont des sorties de modèles, pas des preuves.",
+        "tagline": "Un outil pédagogique. Les scores sont des sorties de modèles et peuvent se tromper.",
         "summary": "Résumé",
         "scores": "Les scores en contexte",
         "th_model": "Modèle",
@@ -209,8 +217,7 @@ TEXT: dict[str, dict[str, str]] = {
         "s_some": "{high} a donné une probabilité de faux très inhabituelle pour une vraie vidéo; les autres non.",
         "s_tried_one": "L’essai que vous avez fait dans l’application figure sous Ce que vous avez essayé.",
         "s_tried_many": "Les {n} essais faits dans l’application figurent sous Ce que vous avez essayé.",
-        "s_end": "Un score est une sortie de modèle, pas une preuve; les notes ci-dessous disent jusqu’où se fier à "
-        "chaque modèle.",
+        "s_end": "Les notes ci-dessous disent jusqu’où se fier à chaque modèle.",
         "and": " et ",
         "x_change": "{m} {a} % à {b} %",
         "x_frames": "Extrait {c} : avec {n} images cachées (images {frames}), les scores ont changé : {changes}.",
@@ -429,7 +436,9 @@ def template_summary(result: VideoResult, language: str = "en", n_experiments: i
     names = [s.name for s in result.models.values()]
     high = [result.models[m].name for m in result.agreement.high_fake]
     join = tr(language, "and")
-    parts = [tr(language, "s_run_one" if len(names) == 1 else "s_run_many", names=_join(names, join))]
+    reading = assess(result, language) if result.notes else None
+    parts = [f"{reading.headline}, {reading.confidence_label.lower()}." if reading else ""]
+    parts.append(tr(language, "s_run_one" if len(names) == 1 else "s_run_many", names=_join(names, join)))
     if not high:
         parts.append(tr(language, "s_none"))
     elif len(high) == len(names):
@@ -439,7 +448,7 @@ def template_summary(result: VideoResult, language: str = "en", n_experiments: i
     if n_experiments:
         parts.append(tr(language, "s_tried_one" if n_experiments == 1 else "s_tried_many", n=n_experiments))
     parts.append(tr(language, "s_end"))
-    return " ".join(parts)
+    return " ".join(x for x in parts if x)
 
 
 def _join(items: list[str], word: str = " and ") -> str:
@@ -515,15 +524,20 @@ def describe_experiment(exp: Experiment, result: VideoResult, language: str = "e
 def llm_settings() -> dict[str, str] | None:
     """Read the LLM settings from the environment (after loading ``.env``).
 
+    The ``.env`` file is looked for in the folder MARScope runs from (and its parents),
+    or at ``$MARSCOPE_ENV_FILE`` (set by ``--env-file``). Variables already set in the
+    environment win over the file.
+
     Returns
     -------
     dict or None
         ``base_url``, ``api_key`` and ``model``, or None if any is missing.
     """
     try:
-        from dotenv import load_dotenv  # noqa: PLC0415
+        from dotenv import find_dotenv, load_dotenv  # noqa: PLC0415
 
-        load_dotenv()
+        # usecwd: an installed package looks where the user runs it.
+        load_dotenv(os.environ.get("MARSCOPE_ENV_FILE") or find_dotenv(usecwd=True))
     except ImportError:  # pragma: no cover - python-dotenv is a dependency
         pass
     settings = {
@@ -692,10 +706,16 @@ def labels_video(sentence: str) -> bool:
     True
     >>> labels_video("This suggests the content may be synthetic.")
     True
+    >>> labels_video("You can trust these findings as strong evidence.")
+    True
     >>> labels_video("Its probability of fake is very unusual for a real video.")
     False
     """
-    if VERDICT.search(sentence) or LABEL_WORDS.search(SAFE_PHRASES.sub(" ", sentence)):
+    if (
+        VERDICT.search(sentence)
+        or EVIDENCE_CLAIM.search(sentence)
+        or LABEL_WORDS.search(SAFE_PHRASES.sub(" ", sentence))
+    ):
         return True
     return bool(INFERENCE.search(sentence) and LABEL_WORDS.search(sentence))
 

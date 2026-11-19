@@ -201,7 +201,7 @@ def test_report_keeps_the_session_tests_and_ask(client: TestClient, video: Path)
     chip = client.post(f"/jobs/{job_id}/ask", json={"chip": "tests"}).json()
     assert chip["source"] == "fixed" and chip["text"]
     verdict = client.post(f"/jobs/{job_id}/ask", json={"question": "Is this video fake?"}).json()
-    assert verdict["refused"] is True and "does not say" in verdict["text"]
+    assert verdict["refused"] is True and "The final decision is yours" in verdict["text"]
     free = client.post(f"/jobs/{job_id}/ask", json={"question": "Why is the score high?"}).json()
     assert free["text"] == "" and free["llm_status"] == "off"
     assert client.post(f"/jobs/{job_id}/ask", json={}).status_code == 422

@@ -3,6 +3,7 @@
 import argparse
 import logging
 import math
+import os
 import socket
 import sys
 from pathlib import Path
@@ -28,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="marscope",
-        description="See what a video deepfake detector sees. A study tool: scores are model outputs, not evidence.",
+        description="See what a video deepfake detector sees. An educational tool: scores are model outputs.",
     )
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--video", type=Path, help="analyze one video file")
@@ -49,6 +50,9 @@ def build_parser() -> argparse.ArgumentParser:
     output.add_argument("--json", action="store_true", help="print the full result as JSON")
     output.add_argument("--report", choices=["markdown", "html", "pdf"], help="write a report next to the video")
     parser.add_argument("--no-llm", action="store_true", help="use the template report even if an LLM is set up")
+    parser.add_argument(
+        "--env-file", type=Path, help="settings file with the MARSCOPE_LLM_* values (default: .env in this folder)"
+    )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--verbose", action="store_true")
@@ -70,6 +74,11 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = build_parser().parse_args(argv)
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(message)s")
+    if args.env_file is not None:
+        if not args.env_file.is_file():
+            print(f"marscope: {args.env_file} does not exist", file=sys.stderr)
+            return 2
+        os.environ["MARSCOPE_ENV_FILE"] = str(args.env_file.resolve())
     from marscope.pipeline import MARScope  # noqa: PLC0415 - keep --help fast
 
     try:
@@ -223,6 +232,9 @@ def format_summary(result: dict[str, object]) -> str:
         f"{video['name']}  {video['duration_s']:.1f} s  {video['width']}x{video['height']}  {video['n_clips']} clips",
         "",
     ]
+    reading = result.get("reading")
+    if isinstance(reading, dict):
+        lines += [f"{reading['headline']} · {reading['confidence_label']}", *reading["reasons"], reading["action"], ""]
     models = result["models"]
     assert isinstance(models, dict)
     for score in models.values():
@@ -242,7 +254,7 @@ def format_summary(result: dict[str, object]) -> str:
     for note in notes:
         prefix = {"at_risk": "!", "breaks": "!", "partly": "~", "holds": "-", "info": " "}[note["state"]]
         lines.append(f"{prefix} {note['text']}")
-    lines += ["", "No verdict: a score is a model output, not proof. Use --json for every value and detail."]
+    lines += ["", "Scores are model outputs and can be wrong. Use --json for every value and detail."]
     return "\n".join(lines)
 
 

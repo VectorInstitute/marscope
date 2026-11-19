@@ -28,7 +28,7 @@ Open **http://localhost:8000/app** (the landing page is at `/`). The same server
    - **Notes:** how far to trust the models (A1–A5), provenance, and laws that may apply, by region.
    - **What if:** JPEG quality, resolution, blur, noise, or "shared many times", and every score
      again.
-   - **Learn:** the five assumptions, the MIT AI Risk Repository, why there is no verdict, the model
+   - **Learn:** the five assumptions, the MIT AI Risk Repository, how far one score goes, the model
      cards, and Ask.
 4. **Report:** the report sheet, with Copy, Download (PDF, HTML, Markdown, session JSON) and the
    evidence card. See [Reports and Ask](report.md).

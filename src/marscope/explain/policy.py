@@ -13,7 +13,8 @@ from typing import Any
 
 import yaml
 
-from marscope.schema import ModelScore, PolicyNote, VideoResult
+from marscope.analysis.ranges import REAL_LEAN_RANK
+from marscope.schema import ModelScore, PolicyNote, Reading, VideoResult
 
 
 JURISDICTIONS = ("eu", "ca", "us", "all")
@@ -330,6 +331,94 @@ def _render(firing: Firing, result: VideoResult, language: str) -> PolicyNote:
         mit=list(note.get("mit", [])),
         collapsed=note["kind"] == "context",
     )
+
+
+LEVELS = ("low", "medium", "high")
+
+
+def assess(result: VideoResult, language: str = "en") -> Reading:
+    """Give the reading at the top of a result: the detectors' lean and its confidence.
+
+    Fixed rule, from the result and its notes (call after :func:`apply_policy`):
+
+    - **fake** when every model scores above its usual range for real videos: high
+      confidence with two or more models, medium with one;
+    - **real** when every model scores in the lower part of its real range: medium at
+      most, since detectors can miss fakes from new generators;
+    - otherwise **unclear** (the models disagree, or the scores sit in between): low.
+
+    Confidence drops one level when an A1, A4 or A5 test breaks (for a fake lean) and
+    when the video is unlike the training data (A3). A reading never changes a score.
+
+    Parameters
+    ----------
+    result : VideoResult
+        The result, with notes.
+    language : {"en", "fr"}
+        Language of the texts.
+
+    Returns
+    -------
+    Reading
+        Lean, confidence and the texts to show.
+    """
+    texts = load_policy()["reading"]
+
+    def t(key: str, **values: Any) -> str:
+        return _text(texts[key], language).format(**values)
+
+    ids = list(result.models)
+    names = [result.models[m].name for m in ids]
+    one = len(ids) == 1
+    high_ids = [m for m in ids if result.models[m].context.high_fake_score]
+    leans_fake = len(high_ids) == len(ids)
+    leans_real = not high_ids and all(result.models[m].context.real_rank < REAL_LEAN_RANK for m in ids)
+    disagree = 0 < len(high_ids) < len(ids)
+    trust = [n for n in result.notes if n.kind == "trust"]
+    broke = [tag for tag in ("A1", "A4", "A5") if any(n.tag == tag and n.state == "breaks" for n in trust)]
+    tested = any(n.tag in ("A1", "A4", "A5") and n.state in ("holds", "partly", "breaks") for n in trust)
+    unlike = any(n.tag == "A3" and n.state == "at_risk" for n in trust)
+    join = t("and")
+    reasons: list[str] = []
+    if leans_fake:
+        lean, level = "fake", 1 if one else 2
+        reasons.append(t("one_unusual", m=names[0]) if one else t("all_unusual", n=len(ids)))
+        if broke:
+            level -= 1
+            reasons.append(t("breaks", t=_join([t(f"when_{tag}") for tag in broke], join)))
+        elif tested:
+            reasons.append(t("hold"))
+    elif leans_real:
+        lean, level = "real", 1
+        reasons.append(t("one_typical", m=names[0]) if one else t("all_typical", n=len(ids)))
+        reasons.append(t("real_cap"))
+    else:
+        lean, level = "unclear", 0
+        if disagree:
+            high = [result.models[m].name for m in high_ids]
+            low = [result.models[m].name for m in ids if m not in high_ids]
+            reasons.append(t("disagree", high=_join(high, join), low=_join(low, join)))
+        else:
+            reasons.append(t("in_between"))
+    if unlike and lean != "unclear":
+        level -= 1
+        reasons.append(t("unlike_training"))
+    if one and lean != "unclear":
+        reasons.append(t("one_model"))
+    confidence = LEVELS[max(level, 0)]
+    headline = t(f"lean_{lean}_one", m=names[0]) if one and lean != "unclear" else t(f"lean_{lean}")
+    return Reading(
+        lean=lean,  # type: ignore[arg-type]
+        confidence=confidence,  # type: ignore[arg-type]
+        headline=headline,
+        confidence_label=t(f"confidence_{confidence}"),
+        reasons=reasons,
+        action=t("action_real" if lean == "real" else "action_check"),
+    )
+
+
+def _join(items: list[str], word: str) -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + word + items[-1]
 
 
 def _text(entry: dict[str, str], language: str) -> str:
