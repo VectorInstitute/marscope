@@ -1394,6 +1394,6 @@
     try { S.refs = await api("references"); } catch (_) { S.refs = []; }
     try { S.bench = await api("benchmark"); } catch (_) { S.bench = null; }
     renderStart();
-    show("start", false);
+    if (V.run.hidden && V.analyze.hidden) show("start", false); // never pull the user out of a run started meanwhile
   });
 })();

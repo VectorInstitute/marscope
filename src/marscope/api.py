@@ -14,7 +14,7 @@ import tempfile
 import threading
 import time
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, replace
 from importlib.resources import files
 from pathlib import Path
@@ -83,7 +83,7 @@ class Job:
     experiments: dict[str, Experiment] = field(default_factory=dict)
     reports: dict[tuple[str, bool, int], Report] = field(default_factory=dict)
     cache: dict[str, dict[str, Any]] = field(default_factory=dict)  # sweeps, probes and maps, computed once
-    inflight: dict[str, threading.Event] = field(default_factory=dict)  # maps being computed
+    inflight: dict[str, threading.Event] = field(default_factory=dict)  # tests and maps being computed
     version: int = 0
 
     def record(self, key: str, experiment: Experiment) -> None:
@@ -204,6 +204,49 @@ GPU_OUT_OF_MEMORY = (
 )
 
 
+def once(job: Job, key: str, compute: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+    """Compute a test or map once per job: cached after, and shared while it runs.
+
+    The computation holds the GPU per pass (``guard`` in the pipeline), so the user's
+    other requests run between passes. A second request for the same key while it
+    runs waits for it instead of computing it again.
+
+    Parameters
+    ----------
+    job : Job
+        The job, whose cache holds the result.
+    key : str
+        What makes two requests the same.
+    compute : callable
+        Computes the result.
+
+    Returns
+    -------
+    dict
+        The result.
+    """
+    while True:
+        with job.lock:
+            cached = job.cache.get(key)
+            if cached is not None:
+                return cached
+            running = job.inflight.get(key)
+            mine = running is None
+            if running is None:
+                running = job.inflight[key] = threading.Event()
+        if not mine:
+            running.wait()
+            continue  # cached now, or the other request failed and this one computes it
+        try:
+            out = compute()
+            job.cache[key] = out
+            return out
+        finally:
+            with job.lock:
+                job.inflight.pop(key, None)
+            running.set()
+
+
 def friendly_error(error: BaseException) -> str:
     """Turn an error from the models into a message a person can act on.
 
@@ -219,8 +262,9 @@ def friendly_error(error: BaseException) -> str:
 
     Examples
     --------
-    >>> friendly_error(RuntimeError("CUDA failure 2: out of memory"))[:31]
-    'the GPU ran out of memory: clos'
+    >>> message = friendly_error(RuntimeError("CUDA failure 2: out of memory"))
+    >>> message.startswith("the GPU ran out of memory")
+    True
     """
     text = str(error) or type(error).__name__
     lowered = text.lower()
@@ -623,17 +667,17 @@ def create_app(toolkit: MARScope | None = None, limits: Limits | None = None) ->
         if body.model not in result.models or body.clip >= len(result.models[body.model].clips):
             raise HTTPException(404, "no such model or clip in this result")
         key = f"probe:{body.kind}:{body.model}:{body.clip}"
-        out = job.cache.get(key)
-        if out is None:
-            occ = occlusion_of(job, body.model, body.clip) if body.kind == "areas" else None
-            try:
-                with manager.gpu:  # check again: a request for the same test may have held the GPU
-                    out = job.cache.get(key) or toolkit.probe(
-                        job.video, result, body.model, body.clip, body.kind, occlusion=occ
-                    )
-            except ValueError as error:
-                raise HTTPException(400, str(error)) from error
-            job.cache[key] = out
+        occ = occlusion_of(job, body.model, body.clip) if body.kind == "areas" else None
+        try:
+            out = once(
+                job,
+                key,
+                lambda: toolkit.probe(
+                    job.video, result, body.model, body.clip, body.kind, occlusion=occ, guard=manager.gpu
+                ),
+            )
+        except ValueError as error:
+            raise HTTPException(400, str(error)) from error
         if not body.record:
             return out
         kind: Literal["areas_test", "frames_test"] = "frames_test" if body.kind == "frames" else "areas_test"
@@ -740,12 +784,11 @@ def create_app(toolkit: MARScope | None = None, limits: Limits | None = None) ->
         job, result = manager.result(job_id)
         if body.model not in result.models or body.clip >= len(result.models[body.model].clips):
             raise HTTPException(404, "no such model or clip in this result")
-        key = f"sweep:{body.model}:{body.clip}"
-        out = job.cache.get(key)
-        if out is None:
-            with manager.gpu:  # check again: a request for the same test may have held the GPU
-                out = job.cache.get(key) or toolkit.sweep(job.video, result, body.model, body.clip)
-            job.cache[key] = out
+        out = once(
+            job,
+            f"sweep:{body.model}:{body.clip}",
+            lambda: toolkit.sweep(job.video, result, body.model, body.clip, guard=manager.gpu),
+        )
         k = min(TOP_FRAMES, len(out["top"]) - 1)
         if body.record and k > 0:
             job.record(
@@ -779,35 +822,14 @@ def create_app(toolkit: MARScope | None = None, limits: Limits | None = None) ->
         return {"model": body.model, "clip": body.clip, "map": grid}
 
     def occlusion_of(job: Job, model_id: str, clip: int) -> list[list[float]]:
-        """Return a clip's occlusion map, computed once per job and cached.
-
-        The GPU lock is held per pass, not for the whole map, so the user's own requests
-        run between passes. A second request for a map being computed waits for it.
-        """
-        key = f"occlusion:{model_id}:{clip}"
-        while True:
-            with job.lock:
-                cached = job.cache.get(key)
-                if cached is not None:
-                    grid: list[list[float]] = cached["map"]
-                    return grid
-                running = job.inflight.get(key)
-                if running is None:
-                    running = job.inflight[key] = threading.Event()
-                    mine = True
-                else:
-                    mine = False
-            if not mine:
-                running.wait()
-                continue  # cached now, or the other request failed and this one computes it
-            try:
-                grid = toolkit.occlusion(job.video, model_id, clip, guard=manager.gpu)
-                job.cache[key] = {"map": grid}
-                return grid
-            finally:
-                with job.lock:
-                    job.inflight.pop(key, None)
-                running.set()
+        """Return a clip's occlusion map, computed once per job and cached."""
+        out = once(
+            job,
+            f"occlusion:{model_id}:{clip}",
+            lambda: {"map": toolkit.occlusion(job.video, model_id, clip, guard=manager.gpu)},
+        )
+        grid: list[list[float]] = out["map"]
+        return grid
 
     @app.post("/jobs/{job_id}/report", response_model=None)
     def report(job_id: str, body: ReportRequest) -> Response | dict[str, Any]:

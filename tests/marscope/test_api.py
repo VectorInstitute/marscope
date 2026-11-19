@@ -50,7 +50,7 @@ class StubToolkit:
         """Return a fixed curve per model."""
         return {m: [0.9, 0.8, 0.6, 0.4, 0.3] for m in result.models}
 
-    def sweep(self, _path: Any, _result: Any, model: str, clip: int) -> dict[str, Any]:
+    def sweep(self, _path: Any, _result: Any, model: str, clip: int, **_kwargs: Any) -> dict[str, Any]:
         """Return a fixed curve."""
         return {"model": model, "clip": clip, "order": list(range(16)), "top": [0.9, 0.5], "random": [0.9, 0.88]}
 

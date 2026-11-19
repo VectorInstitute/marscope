@@ -6,7 +6,7 @@ import math
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass, field
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -583,11 +583,13 @@ class MARScope:
 
     # --- probes
 
-    def _scorer(self, model_id: str) -> ev.Scorer:
+    def _scorer(self, model_id: str, guard: AbstractContextManager[Any] | None = None) -> ev.Scorer:
         runner = self.load(model_id)
+        hold = guard if guard is not None else nullcontext()
 
         def score(frames: np.ndarray, n_valid: int) -> float:
-            out = runner.run(frames[None], np.array([n_valid], dtype=np.int64))
+            with hold:  # the GPU is held per pass, so other requests can run between passes
+                out = runner.run(frames[None], np.array([n_valid], dtype=np.int64))
             return float(out["fake_prob"][0])
 
         return score
@@ -604,6 +606,8 @@ class MARScope:
         clip_index: int,
         kind: str,
         occlusion: list[list[float]] | None = None,
+        *,
+        guard: AbstractContextManager[Any] | None = None,
     ) -> dict[str, Any]:
         """Run a faithfulness probe on one clip.
 
@@ -622,6 +626,8 @@ class MARScope:
             cells of the occlusion map (any model).
         occlusion : list of list of float, optional
             The clip's occlusion map for ``areas`` (computed when not given).
+        guard : context manager, optional
+            Held around each pass only (the server's GPU lock).
 
         Returns
         -------
@@ -630,7 +636,7 @@ class MARScope:
         """
         clip = self._clip(path, model_id, clip_index)
         frames = clip.inputs[self.load(model_id).protocol.image_size]
-        score = self._scorer(model_id)
+        score = self._scorer(model_id, guard)
         if kind == "frames":
             values = np.asarray(result.models[model_id].clips[clip_index].frame_values)
             return ev.probe_frames(score, frames, clip.n_valid, values, seed=clip_index).as_dict()
@@ -671,7 +677,15 @@ class MARScope:
             out[model_id] = round(self._scorer(model_id)(*ev.remove_frames(frames, clip.n_valid, gone)), 4)
         return out
 
-    def sweep(self, path: str | Path, result: VideoResult, model_id: str, clip_index: int) -> dict[str, Any]:
+    def sweep(
+        self,
+        path: str | Path,
+        result: VideoResult,
+        model_id: str,
+        clip_index: int,
+        *,
+        guard: AbstractContextManager[Any] | None = None,
+    ) -> dict[str, Any]:
         """Score one clip as more of the model's top frames are removed, against random.
 
         Parameters
@@ -684,6 +698,8 @@ class MARScope:
             Model whose own frame values rank the frames.
         clip_index : int
             Clip number.
+        guard : context manager, optional
+            Held around each pass only (the server's GPU lock).
 
         Returns
         -------
@@ -693,7 +709,9 @@ class MARScope:
         clip = self._clip(path, model_id, clip_index)
         frames = clip.inputs[self.load(model_id).protocol.image_size]
         values = np.asarray(result.models[model_id].clips[clip_index].frame_values)
-        out = ev.sweep_frames(self._scorer(model_id), frames, clip.n_valid, values, SHOWN_FRAMES, seed=clip_index)
+        out = ev.sweep_frames(
+            self._scorer(model_id, guard), frames, clip.n_valid, values, SHOWN_FRAMES, seed=clip_index
+        )
         return {"model": model_id, "clip": clip_index, **out}
 
     def edit_scores(self, path: str | Path, result: VideoResult, clip_index: int, edits: Edits) -> dict[str, float]:
@@ -791,5 +809,5 @@ class MARScope:
         """
         clip = self._clip(path, model_id, clip_index)
         frames = clip.inputs[self.load(model_id).protocol.image_size]
-        result = ev.occlusion_map(self._scorer(model_id), frames, clip.n_valid, grid, guard=guard)
+        result = ev.occlusion_map(self._scorer(model_id, guard), frames, clip.n_valid, grid)
         return [[round(float(v), 4) for v in row] for row in result]
