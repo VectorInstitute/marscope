@@ -55,7 +55,7 @@ The **Learn** tab has **Ask about this result**:
   would make this more certain?", "So is it real or fake?") get fixed answers built from the
   result. They work without a language model and give the same answer every time.
 - **General questions** ("What is a deepfake?", "What is C2PA?", "What should our team do?") are
-  answered from MARScope's **knowledge cards**: short answers written from our research papers
+  answered from MARScope's **knowledge cards**: short answers written from the cited research papers
   ([survey](https://vectorinstitute.github.io/deepfakes-survey-2026/),
   [MARS](https://vectorinstitute.github.io/mars/), [MOZAIC](https://vectorinstitute.github.io/mozaic/))
   and reviewed. The card's own text is shown, with its references, so these answers work offline and

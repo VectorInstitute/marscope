@@ -10,7 +10,7 @@
 
 **See what a video deepfake detector sees, and how far to trust it.**
 
-MARScope runs up to three trained video deepfake detectors (MARS, GenD and DFD-HR) on a video, on
+MARScope runs up to three trained video deepfake detectors ([MARS](https://github.com/VectorInstitute/mars), GenD and DFD-HR) on a video, on
 your own machine. It shows the evidence behind each score, lets you test what each model relies on,
 and explains the result with fixed, cited notes. It is a study tool: it never says a video is real
 or fake.
@@ -195,7 +195,7 @@ video or frames. Sentences with numbers or a conclusion about the video, and ref
 removed; if the call fails, the template is used.
 
 **Ask** (in the Learn tab) answers general questions ("What is a deepfake?", "What is C2PA?") from a
-small set of reviewed knowledge cards written from our research papers, with no language model needed.
+small set of reviewed knowledge cards written from the cited research papers, with no language model needed.
 Questions about a result use the language model, with the same rules as the report.
 
 ## Scope and limits
@@ -223,6 +223,23 @@ uv run pytest -m "not integration_test" tests
 ```
 
 Docs: `uv run mkdocs serve` (sources in `docs/`).
+
+## Citation
+
+MARScope runs MARS ([code](https://github.com/VectorInstitute/mars), [project page](https://vectorinstitute.github.io/mars/),
+[checkpoint](https://huggingface.co/vector-institute/mars)). If you use MARS, please cite:
+
+```bibtex
+@misc{radwan2026marsmultiscaleappearanceresidualstreams,
+  title         = {MARS: Multiscale Appearance-Residual Streams for Video Forgery Detection},
+  author        = {Ahmed Y. Radwan and Shaina Raza},
+  year          = {2026},
+  eprint        = {2611.12508},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  url           = {https://arxiv.org/abs/2611.12508}
+}
+```
 
 ## Team
 

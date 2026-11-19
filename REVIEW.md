@@ -28,7 +28,7 @@ journalist. Look for these first.
    instead of read from ONNX metadata or `serving.json`.
 6. **A verdict or a threshold.** Any output, UI text, report template or log message that says a
    video *is* real or fake, or any new fixed cut-off on a score. The one allowed summary is the
-   reading ("Detectors lean fake · Medium confidence"), from the fixed rule in `policy.assess`: it
+   reading ("Detectors lean fake"), from the fixed rule in `policy.assess`: it
    describes which way the detectors lean against their usual ranges, never what the video is.
 7. **A rule that changes a score**, or policy notes that are not deterministic for the same video
    and versions.

@@ -234,7 +234,7 @@ def format_summary(result: dict[str, object]) -> str:
     ]
     reading = result.get("reading")
     if isinstance(reading, dict):
-        lines += [f"{reading['headline']} · {reading['confidence_label']}", *reading["reasons"], reading["action"], ""]
+        lines += [str(reading["headline"]), *reading["reasons"], str(reading["action"]), ""]
     models = result["models"]
     assert isinstance(models, dict)
     for score in models.values():

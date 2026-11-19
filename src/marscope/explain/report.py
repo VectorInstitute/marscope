@@ -437,7 +437,7 @@ def template_summary(result: VideoResult, language: str = "en", n_experiments: i
     high = [result.models[m].name for m in result.agreement.high_fake]
     join = tr(language, "and")
     reading = assess(result, language) if result.notes else None
-    parts = [f"{reading.headline}, {reading.confidence_label.lower()}." if reading else ""]
+    parts = [f"{reading.headline}." if reading else ""]
     parts.append(tr(language, "s_run_one" if len(names) == 1 else "s_run_many", names=_join(names, join)))
     if not high:
         parts.append(tr(language, "s_none"))

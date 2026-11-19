@@ -369,7 +369,7 @@ def _verdict(result: VideoResult, lang: str, cite: Cite) -> str:
     reading = assess(result, lang)
     return " ".join(
         [
-            f"{reading.headline}, {reading.confidence_label.lower()}: {' '.join(reading.reasons)}",
+            f"{reading.headline}: {' '.join(reading.reasons)}",
             _t(lang, "verdict", c=cite("survey")),
             _t(lang, "verdict_scores", r=scores),
             _t(lang, "verdict_end", c=cite("c2pa"), d=cite("eu-ai-act-annex3")),

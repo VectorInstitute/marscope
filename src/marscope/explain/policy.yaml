@@ -347,7 +347,7 @@ notes:
     references: [iso-26655, eu-ai-act-annex3, mit-ai-risk]
     mit: ["5.1", "3.2"]
 
-# The reading at the top of a result: which way the detectors lean, and how confident that is.
+# The reading at the top of a result: which way the detectors lean.
 # Rule in policy.assess; these are its texts.
 reading:
   lean_fake: {en: "Detectors lean fake", fr: "Les détecteurs penchent vers le faux"}
@@ -355,25 +355,14 @@ reading:
   lean_real: {en: "Detectors lean real", fr: "Les détecteurs penchent vers le vrai"}
   lean_real_one: {en: "{m} leans real", fr: "{m} penche vers le vrai"}
   lean_unclear: {en: "No clear lean", fr: "Pas de tendance nette"}
-  confidence_high: {en: "High confidence", fr: "Confiance élevée"}
-  confidence_medium: {en: "Medium confidence", fr: "Confiance moyenne"}
-  confidence_low: {en: "Low confidence", fr: "Confiance faible"}
-  all_unusual: {en: "Every model scores this far above what real videos usually get.", fr: "Tous les modèles donnent un score bien au-dessus de ce qu’obtiennent d’habitude les vraies vidéos."}
-  one_unusual: {en: "{m} scores this far above what real videos usually get.", fr: "{m} donne un score bien au-dessus de ce qu’obtiennent d’habitude les vraies vidéos."}
-  all_typical: {en: "Every model scores this within what real videos usually get.", fr: "Tous les modèles donnent un score dans la plage habituelle des vraies vidéos."}
-  one_typical: {en: "{m} scores this within what real videos usually get.", fr: "{m} donne un score dans la plage habituelle des vraies vidéos."}
-  hold: {en: "The scores hold under the tests.", fr: "Les scores tiennent sous les essais."}
-  breaks: {en: "The score drops to a real-video level when {t}.", fr: "Le score tombe au niveau des vraies vidéos quand {t}."}
-  real_cap: {en: "Detectors can miss fakes from new generators, so this reading stays at medium confidence or below.", fr: "Les détecteurs peuvent manquer les faux de nouveaux générateurs : cette lecture reste à une confiance moyenne au plus."}
-  unlike_training: {en: "This video is unlike the videos the models learned from.", fr: "Cette vidéo ne ressemble pas aux vidéos sur lesquelles les modèles ont appris."}
-  one_model: {en: "Only one model ran, so there is nothing to compare against.", fr: "Un seul modèle a tourné : il n’y a rien à comparer."}
+  all_unusual: {en: "Every model scores far above real videos.", fr: "Tous les modèles donnent un score bien au-dessus des vraies vidéos."}
+  one_unusual: {en: "{m} scores far above real videos.", fr: "{m} donne un score bien au-dessus des vraies vidéos."}
+  all_typical: {en: "Every model scores like a real video.", fr: "Tous les modèles donnent un score de vraie vidéo."}
+  one_typical: {en: "{m} scores like a real video.", fr: "{m} donne un score de vraie vidéo."}
   disagree: {en: "The models disagree: on {high} the score is far above real videos, on {low} it is within the usual range.", fr: "Les modèles divergent : avec {high}, le score est bien au-dessus des vraies vidéos ; avec {low}, dans la plage habituelle."}
   in_between: {en: "The scores sit between what real and fake videos usually get.", fr: "Les scores se situent entre ce qu’obtiennent d’habitude les vraies et les fausses vidéos."}
-  action_check: {en: "Check where the video comes from before acting.", fr: "Vérifiez d’où vient la vidéo avant d’agir."}
+  action_check: {en: "Check the source before acting.", fr: "Vérifiez la source avant d’agir."}
   action_real: {en: "If it matters, still check where the video comes from.", fr: "Si l’enjeu est important, vérifiez tout de même d’où vient la vidéo."}
-  when_A1: {en: "the face outline is hidden", fr: "on cache le contour du visage"}
-  when_A4: {en: "the video is shared many times", fr: "la vidéo est partagée de nombreuses fois"}
-  when_A5: {en: "fine detail is removed", fr: "on retire les détails fins"}
   and: {en: " and ", fr: " et "}
 
 references:

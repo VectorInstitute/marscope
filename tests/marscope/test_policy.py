@@ -206,37 +206,27 @@ def _reading(make_result: Make, scores: dict[str, tuple[float, bool]], **kwargs:
     return assess(result)
 
 
-def test_reading_leans_fake_with_high_confidence_when_all_models_agree(make_result: Make) -> None:
-    r = _reading(make_result, {"mars": (0.9, True), "gend": (0.9, True)}, measures={"mars": A1_HOLDS})
-    assert (r.lean, r.confidence) == ("fake", "high")
-    assert r.headline == "Detectors lean fake" and r.confidence_label == "High confidence"
-    assert r.reasons[0] == "Every model scores this far above what real videos usually get."
-    assert "hold under the tests" in r.reasons[1] and r.action.startswith("Check where the video comes from")
+def test_reading_leans_fake_when_every_model_scores_high(make_result: Make) -> None:
+    r = _reading(make_result, {"mars": (0.9, True), "gend": (0.9, True)})
+    assert (r.lean, r.headline) == ("fake", "Detectors lean fake")
+    assert r.reasons == ["Every model scores far above real videos."]
+    assert r.action == "Check the source before acting."
 
 
-def test_reading_names_the_single_model_and_caps_confidence(make_result: Make) -> None:
+def test_reading_names_the_single_model(make_result: Make) -> None:
     r = _reading(make_result, {"mars": (0.9, True)})
-    assert (r.lean, r.confidence, r.headline) == ("fake", "medium", "MARS leans fake")
-    assert r.reasons[-1] == "Only one model ran, so there is nothing to compare against."
+    assert (r.lean, r.headline) == ("fake", "MARS leans fake")
     assert not any("agree" in x for x in r.reasons)
 
 
-def test_reading_drops_a_level_when_a_test_breaks(make_result: Make) -> None:
-    r = _reading(make_result, {"mars": (0.9, True), "gend": (0.9, True)}, measures={"mars": A1_BREAKS})
-    assert (r.lean, r.confidence) == ("fake", "medium")
-    assert any("the face outline is hidden" in x for x in r.reasons)
-
-
-def test_reading_real_is_never_high_and_unlike_training_lowers_it(make_result: Make) -> None:
+def test_reading_leans_real_when_every_model_scores_low(make_result: Make) -> None:
     r = _reading(make_result, {"mars": (0.1, False), "gend": (0.1, False)})
-    assert (r.lean, r.confidence) == ("real", "medium") and "new generators" in r.reasons[1]
-    r = _reading(make_result, {"mars": (0.1, False), "gend": (0.1, False)}, scope=["short"])
-    assert (r.lean, r.confidence) == ("real", "low")
+    assert (r.lean, r.headline) == ("real", "Detectors lean real")
 
 
 def test_reading_is_unclear_when_models_disagree(make_result: Make) -> None:
     r = _reading(make_result, {"mars": (0.9, True), "gend": (0.3, False)})
-    assert (r.lean, r.confidence, r.headline) == ("unclear", "low", "No clear lean")
+    assert (r.lean, r.headline) == ("unclear", "No clear lean")
     assert r.reasons[0].startswith("The models disagree: on MARS the score is far above real videos")
 
 

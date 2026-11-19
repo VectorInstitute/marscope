@@ -546,10 +546,11 @@ ol.rrefs { margin: 0; padding-left: 0; list-style: none; font-size: 13px; displa
 .nd[open] summary::after { content: " ⌄"; }
 .nd p { font-size: 13px; color: var(--secondary); margin-top: 4px; }
 .notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 var(--gutter) 12px; padding: 12px 16px; border-radius: 14px; background: var(--grouped); font-size: 14px; font-weight: 600; }
-.reading { padding: 14px 16px; border-radius: 16px; background: var(--grouped); margin-bottom: 12px; }
-.rd-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.rd-lean { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
-.rd-conf { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--fill); white-space: nowrap; }
-.rd-conf.c-high { background: var(--label); color: var(--bg); }
-.rd-why { margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--secondary); }
+.reading { padding: 4px 16px 14px; }
+.rd-lean { display: block; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.reading.lean-fake .rd-lean { color: var(--fake-ink, var(--label)); }
+.rd-why { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: var(--secondary); }
 .reading:empty { display: none; }
+
+/* Model cards lead with the band; the raw numbers are in the report. */
+.m-num.m-word { font-size: 15px; letter-spacing: 0; line-height: 1.25; max-width: 15ch; }

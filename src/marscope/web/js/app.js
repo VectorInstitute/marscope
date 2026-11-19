@@ -8,7 +8,8 @@
   MS.addStrings({
     en: {
       back: "Back",
-      likelihood: "Probability of fake", fakeLower: "probability of fake", pctFake: "{n}% probability of fake", pctReal: "{n}% probability of real",
+      wasBand: "was {b}", moved: "score moved", realBand: "Where real videos usually score",
+      resultH: "Result", likelihood: "Probability of fake", fakeLower: "probability of fake", pctFake: "{n}% probability of fake", pctReal: "{n}% probability of real",
       heroSub: "Open a video and press Analyze. MARS scores every clip; add models to compare. Then test what they use.",
       chooseModels: "Choose models", overall: "Overall",
       strConsistent: "The models agree", leansFake: "they lean fake", leansReal: "they lean real", strMixed: "The models disagree", strWeak: "No clear lean",
@@ -80,7 +81,7 @@
       askPh: "Ask a question about this result", askOffPh: "Needs a language model",
       askOff: "Without a language model, general questions are answered from the knowledge cards; questions about this result need one (see the README).",
       askOffQ: "This question is about this result and needs a language model (set one up in .env). General questions and the suggested ones work without it.",
-      chipDeepfake: "What is a deepfake?", whoCard: "From the MARScope knowledge cards, written from our research papers.",
+      chipDeepfake: "What is a deepfake?", whoCard: "From the MARScope knowledge cards, written from the cited papers.",
       askTimeout: "The language model did not answer in time. Try again.", askFailed: "The language model could not be reached.",
       askFiltered: "That answer was removed because it included a number or a conclusion about the video. Try asking another way.",
       whoFixed: "Fixed answer, built from this result.", whoLlm: "Written by {m} from this result, with numbers and conclusions about the video removed.",
@@ -89,7 +90,8 @@
     },
     fr: {
       back: "Retour",
-      likelihood: "Probabilité de faux", fakeLower: "probabilité de faux", pctFake: "{n} % de probabilité de faux", pctReal: "{n} % de probabilité de vrai",
+      wasBand: "avant : {b}", moved: "le score a bougé", realBand: "Plage habituelle des vraies vidéos",
+      resultH: "Résultat", likelihood: "Probabilité de faux", fakeLower: "probabilité de faux", pctFake: "{n} % de probabilité de faux", pctReal: "{n} % de probabilité de vrai",
       heroSub: "Ouvrez une vidéo et lancez l’analyse. MARS note chaque extrait; ajoutez des modèles pour comparer. Testez ensuite ce qu’ils utilisent.",
       chooseModels: "Choisir les modèles", overall: "En bref",
       strConsistent: "Les modèles sont d’accord", leansFake: "ils penchent vers le faux", leansReal: "ils penchent vers le vrai", strMixed: "Les modèles divergent", strWeak: "Pas de tendance nette",
@@ -161,7 +163,7 @@
       askPh: "Posez une question sur ce résultat", askOffPh: "Demande un modèle de langage",
       askOff: "Sans modèle de langage, les questions générales sont répondues par les fiches de connaissances; les questions sur ce résultat en demandent un (voir le README).",
       askOffQ: "Cette question porte sur ce résultat et demande un modèle de langage (à configurer dans .env). Les questions générales et suggérées fonctionnent sans.",
-      chipDeepfake: "Qu’est-ce qu’un hypertrucage?", whoCard: "Tiré des fiches de connaissances de MARScope, rédigées à partir de nos articles de recherche.",
+      chipDeepfake: "Qu’est-ce qu’un hypertrucage?", whoCard: "Tiré des fiches de connaissances de MARScope, rédigées à partir des articles cités.",
       askTimeout: "Le modèle de langage n’a pas répondu à temps. Réessayez.", askFailed: "Le modèle de langage est injoignable.",
       askFiltered: "Cette réponse a été retirée car elle contenait un nombre ou une conclusion sur la vidéo. Reformulez la question.",
       whoFixed: "Réponse fixe, construite à partir de ce résultat.", whoLlm: "Rédigé par {m} à partir de ce résultat, sans les nombres ni les conclusions sur la vidéo.",
@@ -568,12 +570,10 @@
           const v = clip.frame_values[pos[k]];
           bg = m.native ? signedBg(v / maxAbs) : cellBg(m, v);
           label = `${m.name}, ${T("frameN", { n: srcFrame(S.clip, k) + 1 })}` + (S.guessing ? "" : m.native ? `: ${T("frameContrib")} ${v >= 0 ? "+" : ""}${v.toFixed(3)}` : `: ${T("pctFake", { n: pct(v) })}`);
-          if (!S.guessing && !m.native) text = pct(v);
         } else {
           const v = clipNow(m, k);
           bg = cellBg(m, v);
           label = S.guessing ? `${m.name}, ${T("clipAt", { n: k + 1, t: t2s(refClip(k).first_frame / fps()) })}` : `${m.name}, ${T("clipAt", { n: k + 1, t: t2s(refClip(k).first_frame / fps()) })}: ${T("pctFake", { n: pct(v) })}`;
-          if (!S.guessing && cnt <= 20) text = pct(v);
         }
         cells += `<button type="button" role="gridcell" class="cell ${sel ? "sel" : ""} ${clipZ && S.removed.includes(k) ? "off" : ""}" data-m="${mi}" data-k="${k}" tabindex="${sel ? 0 : -1}" aria-selected="${sel}" aria-label="${esc(label)}" style="background:${S.guessing ? "var(--fill)" : bg}">${text}</button>`;
       }
@@ -650,21 +650,21 @@
   function renderModels() {
     $("#models").innerHTML = S.models.map((m, mi) => {
       const s = S.R.models[m.id], now = pct(videoNow(m)), base = pct(s.fake), ctx = s.context;
-      const small = S.rescoring || S.editBusy ? T("rescoring") : now !== base ? T("wasPct", { n: base }) : T("fakeLower");
       const pos = placeOf(m, videoNow(m)), rr = rarity(pos.real, m.name), posTxt = `${rr.label}${LANG() === "fr" ? " :" : ":"} ${rr.odds}`;
+      const was = rarity(ctx.real_rank, "").label;
+      const small = S.rescoring || S.editBusy ? T("rescoring") : was !== rr.label ? T("wasBand", { b: was.toLowerCase() }) : now !== base ? T("moved") : "";
       const [rlo, rhi] = ctx.real_range.map((v) => clamp(v * 100, 0, 100));
       return `<button type="button" class="m" data-f="${mi}" aria-pressed="${mi === S.focus}" aria-label="${esc(m.name)}: ${T("pctFake", { n: now })}, ${T("pctReal", { n: 100 - now })}${now !== base ? ", " + T("wasPct", { n: base }) : ""}. ${esc(posTxt)}">
-        <span class="m-name">${esc(m.name)}</span><span class="m-num">${now}%<small>${small}</small></span>
+        <span class="m-name">${esc(m.name)}</span><span class="m-num m-word">${esc(rr.label)}${small ? `<small>${esc(small)}</small>` : ""}</span>
         <span class="m-kind">${esc(T("kind_" + m.id))}</span>
         <span class="m-range" aria-hidden="true"><span class="m-band" style="left:${rlo}%;width:${Math.max(1, rhi - rlo)}%"></span>${now !== base ? `<i class="m-dot was" style="left:${base}%"></i>` : ""}<i class="m-dot" style="left:${now}%"></i></span>
-        <span class="m-legend" aria-hidden="true"><i class="m-sw"></i>${esc(T("realUsually", { a: Math.round(rlo), b: Math.round(rhi) }))}</span>
-        <span class="m-pos" aria-hidden="true"><b>${esc(rr.label)}</b>${LANG() === "fr" ? " :" : ":"} ${esc(rr.odds)}</span>
+        <span class="m-legend" aria-hidden="true"><i class="m-sw"></i>${esc(T("realBand"))}</span>
         ${s.device === "cpu" ? `<span class="m-note">${T("cpuNote")}${s.device_note ? ": " + esc(s.device_note) : ""}</span>` : ""}</button>`;
     }).join("");
     /* The reading: which way the detectors lean and how confident that is (rule: marscope.explain.policy.assess). */
     const r = S.R.reading;
     $("#reading").className = "reading" + (r ? " lean-" + r.lean : "");
-    $("#reading").innerHTML = r ? `<div class="rd-top"><b class="rd-lean">${esc(r.headline)}</b><span class="rd-conf c-${r.confidence}">${esc(r.confidence_label)}</span></div><p class="rd-why">${esc(r.reasons.join(" "))} ${esc(r.action)}</p>` : "";
+    $("#reading").innerHTML = r ? `<b class="rd-lean">${esc(r.headline)}</b><ul class="rd-why">${[...r.reasons, r.action].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
     $("#agree").textContent = S.guess ? T("youSaid", { g: T({ real: "real", fake: "fake", unsure: "notSure" }[S.guess]) }) : "";
     renderTrustSum();
   }
@@ -1274,7 +1274,7 @@
     }
     const rw = W - 40 - rx, rd = S.R.reading; let y = 164;
     if (rd) {  /* the reading first: what an executive reads before the numbers */
-      x.fillStyle = INK; x.font = F(700, 20); x.fillText(fit(x, `${rd.headline} · ${rd.confidence_label}`, rw), rx, y);
+      x.fillStyle = INK; x.font = F(700, 20); x.fillText(fit(x, rd.headline, rw), rx, y);
       x.fillStyle = SEC; x.font = F(500, 13); wrap(x, rd.reasons.join(" "), rx, y + 22, rw, 18, 2);
       y += 66;
     }
@@ -1282,10 +1282,8 @@
     S.models.forEach((m) => {
       const s = S.R.models[m.id]; y += 18;
       x.fillStyle = INK; x.font = F(700, 18); x.fillText(m.name, rx, y + 14);
-      x.font = F(700, 30); x.textAlign = "right"; x.fillText(pct(s.fake) + "%", rx + rw, y + 20); x.textAlign = "left";
       const ra = rarity(s.context.real_rank, m.name), [lo, hi] = s.context.real_range;
       x.fillStyle = INK; x.font = F(700, 13); x.fillText(fit(x, ra.label, rw - 90), rx, y + 34);
-      x.fillStyle = SEC; x.font = F(500, 12); x.fillText(fit(x, ra.odds, rw), rx, y + 50);
       x.fillStyle = "#ececf0"; rr(x, rx, y + 58, rw, 8, 4); x.fill();
       x.fillStyle = "rgba(0, 114, 178, 0.45)"; rr(x, rx + rw * lo, y + 58, Math.max(3, rw * (hi - lo)), 8, 4); x.fill();
       x.fillStyle = INK; x.beginPath(); x.arc(rx + rw * clamp(s.fake, 0, 1), y + 62, 6, 0, 2 * Math.PI); x.fill();

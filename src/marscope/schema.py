@@ -120,19 +120,15 @@ class Agreement(_Model):
 
 
 class Reading(_Model):
-    """What the detectors' scores point to, and how confident that reading is.
+    """Which way the detectors lean, by a fixed rule (``explain.policy.assess``).
 
-    It describes the detectors' output by a fixed rule (``explain.policy.assess``):
-    which way the scores lean against real videos, whether the models agree, whether
-    the tests hold, and whether the video is like the training data. It never changes
-    a score.
+    It describes the detectors' output against their usual ranges, never what the
+    video is, and it never changes a score.
     """
 
     lean: Literal["fake", "real", "unclear"]
-    confidence: Literal["high", "medium", "low"]
     headline: str = Field(description='For example "Detectors lean fake"')
-    confidence_label: str = Field(description='For example "High confidence"')
-    reasons: list[str] = Field(default_factory=list, description="One plain sentence per reason")
+    reasons: list[str] = Field(default_factory=list, description="One plain sentence")
     action: str = Field(description="The next step for the reader")
 
 
